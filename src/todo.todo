@@ -1,0 +1,6 @@
+1. Clean up the modules.
+2. Create response models for the OpenAI-compatible endpoint, so `lm-eval` can use it and the response structure is centralized.
+3. Remove all debugging prints.
+4. Make `main.py` follow a single responsibility.
+5. Centralize the configuration for running experiments.
+6. Explore agents.
