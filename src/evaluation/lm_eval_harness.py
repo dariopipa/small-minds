@@ -1,9 +1,9 @@
 from typing import Any
 
-from lm_eval.evaluator import simple_evaluate
+from lm_eval.evaluator import simple_evaluate  # type: ignore[import-untyped]
 
 from evaluation.lm_eval_config_models import LLMEvalHarnessConfig
-from src.evaluation.evaluator_interface import EvaluatorI
+from evaluation.evaluator_interface import EvaluatorI
 
 
 class LLMEvalHarness(EvaluatorI):
@@ -22,5 +22,6 @@ class LLMEvalHarness(EvaluatorI):
             log_samples=self.config.log_samples,
             write_out=self.config.write_out,
             bootstrap_iters=self.config.bootstrap_iters,
-            gen_kwargs=self.config.gen_kwargs.model_dump(exclude_none=True),
+            # Arguments for model generation.
+            # gen_kwargs=self.config.gen_kwargs.model_dump(exclude_none=True),
         )

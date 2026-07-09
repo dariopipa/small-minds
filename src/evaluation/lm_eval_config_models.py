@@ -14,11 +14,11 @@ class LocalCompletionsModelArgs(BaseModel):
     timeout: int = Field(default=180, ge=1)
 
 
-class GenerationKwargs(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+# class GenerationKwargs(BaseModel):
+#     model_config = ConfigDict(extra="forbid")
 
-    temperature: float = Field(default=0.0, ge=0.0)
-    max_tokens: int = Field(default=256, ge=1)
+#     temperature: float = Field(default=0.0, ge=0.0)
+#     max_tokens: int = Field(default=256, ge=1)
 
 
 class LLMEvalHarnessConfig(BaseModel):
@@ -40,4 +40,4 @@ class LLMEvalHarnessConfig(BaseModel):
     write_out: bool = False
     bootstrap_iters: int = Field(default=0, ge=0)
 
-    gen_kwargs: GenerationKwargs = Field(default_factory=GenerationKwargs)
+    # gen_kwargs: GenerationKwargs = Field(default_factory=GenerationKwargs)

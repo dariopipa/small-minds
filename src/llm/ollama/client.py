@@ -4,19 +4,18 @@ import httpx
 import ollama
 from ollama import AsyncClient
 
-from src.common.exceptions import ModelLoadException, ModelNotFoundException
-from src.llm.llm_client_interface import LLMClientI
-from src.llm.schemas import LLMResponse, ModelOptions, OllamaConfig
+from llm.schemas import LLMResponse
+from llm.ollama.config import OllamaProviderConfig
+from common.exceptions import ModelLoadException, ModelNotFoundException
+from llm.client_interface import LLMClientI
 
 
 class OllamaClient(LLMClientI):
-    def __init__(
-        self, model_name: str, model_options: ModelOptions, ollama_config: OllamaConfig
-    ):
-        self.model_name = model_name
-        self.model_options = model_options
+    def __init__(self, config: OllamaProviderConfig):
+        self.model_name = config.model_name
+        self.options = config.options
+        self.config = config.config
         self.client = AsyncClient()
-        self.config = ollama_config
 
     async def load_model(self) -> None:
         model_exists = await self._check_model_existence()
@@ -31,14 +30,14 @@ class OllamaClient(LLMClientI):
 
         return LLMResponse(
             response=response.response,
-            model=response.model,
+            model=response.model or self.model_name,
             thinking=getattr(response, "thinking", None),
             prompt_tokens=response.prompt_eval_count or 0,
             output_tokens=response.eval_count or 0,
             total_duration_ns=response.total_duration or 0,
         )
 
-    def chat_bot(self):
+    async def chat_bot(self):
         return "chaaaaaaaaaaaaaaat-boooooooooooot"
 
     async def _check_model_existence(self) -> bool:
@@ -62,9 +61,9 @@ class OllamaClient(LLMClientI):
                 "Cannot communicate with Ollama. Is Ollama running?"
             ) from e
 
-    # To load a model in Ollama, an empty prompt must be sent.
     async def _pre_load_model(self) -> bool:
         try:
+            # To load a model in OLLAMA an empty prompt must be sent.
             await self._generate_call(prompt="")
             return True
 
@@ -81,38 +80,10 @@ class OllamaClient(LLMClientI):
                 f"Could not preload model '{self.model_name}'."
             ) from e
 
-    # todo: ADD A OLLAMA CONFIG that can be passed in the generate()
     async def _generate_call(self, prompt: str = "") -> Any:
-        generate_kwargs = {
-            "model": self.model_name,
-            "prompt": prompt,
-            "options": self.model_options.to_dict(),
-            **self.config.to_generate_kwargs(),
-        }
-
-        print("\n=== OLLAMA GENERATE KWARGS ===")
-        for key, value in generate_kwargs.items():
-            if key == "prompt":
-                print("prompt_chars:", len(value))
-            else:
-                print(f"{key}: {value}")
-
-        print("\n==== DEBUGGG ===")
-
-        response = await self.client.generate(
+        return await self.client.generate(
             model=self.model_name,
             prompt=prompt,
-            options=self.model_options.to_dict(),
+            options=self.options.to_dict(),
             **self.config.to_generate_kwargs(),
         )
-
-        # TODO: Remove
-        print("\n=== OLLAMA RESPONSE ===")
-        print("prompt_eval_count:", response.prompt_eval_count)
-        print("eval_count:", response.eval_count)
-        print("total_duration_s:", (response.total_duration or 0) / 1e9)
-        print("load_duration_s:", (getattr(response, "load_duration", 0) or 0) / 1e9)
-        print("prompt_eval_duration_s:", (response.prompt_eval_duration or 0) / 1e9)
-        print("eval_duration_s:", (response.eval_duration or 0) / 1e9)
-
-        return response

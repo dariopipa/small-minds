@@ -1,15 +1,14 @@
 from abc import ABC, abstractmethod
 
-from src.llm.schemas import LLMResponse
+from llm.schemas import LLMResponse
 
 
 class LLMClientI(ABC):
     @abstractmethod
-    async def load_model(self, model_name: str) -> str:
+    async def load_model(self) -> None:
         raise NotImplementedError
 
     # Generate sends a single prompt and returns a single response.
-    @abstractmethod
     async def generate(self, prompt: str) -> LLMResponse:
         raise NotImplementedError
 

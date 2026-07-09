@@ -1,15 +1,17 @@
+from contextlib import asynccontextmanager
 import sys
 import time
 
 from fastapi import FastAPI
 
 from evaluation.lm_eval_config_models import (
-    GenerationKwargs,
     LLMEvalHarnessConfig,
     LocalCompletionsModelArgs,
 )
-from src.evaluation.lm_eval_harness import LLMEvalHarness
-from src.api.routes import routes
+from llm.factories import LLMClientFactory
+from llm.ollama.config import OllamaConfig, OllamaModelOptions, OllamaProviderConfig
+from evaluation.lm_eval_harness import LLMEvalHarness
+from api.routes import routes
 
 
 # TODO: REMOVE AND CENTRALIZE THE CONFIGURATION
@@ -17,14 +19,37 @@ from src.api.routes import routes
 MODEL_NAME = "qwen2.5:3b"
 OLLAMA_CHAT_URL = "http://localhost:11434/v1"
 BASE_URL = "http://127.0.0.1:8000/v1/completions"
-app = FastAPI()
 
+
+def create_client():
+    return LLMClientFactory.create(
+        config=OllamaProviderConfig(
+            provider="ollama",
+            model_name=MODEL_NAME,
+            options=OllamaModelOptions(seed=42, temperature=0),
+            config=OllamaConfig(stream=False, think=False, keep_alive="60m"),
+        )
+    )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Run at startup
+    Initialize the Client and add it to request.state
+    """
+    client = create_client()
+    app.state.llm_client = client
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 app.include_router(router=routes)
 
 
 def main():
     try:
         # TODO: Remove
+        print("MAIN CALLED")
         wall_start = time.perf_counter()
         cpu_start = time.process_time()
 
@@ -47,16 +72,12 @@ def main():
                     "Do not put anything after the final answer line.\n\n"
                 ),
                 tasks=["gsm8k"],
-                num_fewshot=5,
+                num_fewshot=2,
                 batch_size=1,
-                limit=50,
+                limit=1,
                 log_samples=False,
                 write_out=False,
                 bootstrap_iters=10,
-                gen_kwargs=GenerationKwargs(
-                    temperature=0.0,
-                    max_tokens=256,
-                ),
             )
         )
 
