@@ -5,7 +5,7 @@ from llm.schemas import LLMResponse
 
 class LLMClientI(ABC):
     @abstractmethod
-    async def load_model(self) -> None:
+    async def ensure_model_ready(self) -> None:
         raise NotImplementedError
 
     # Generate sends a single prompt and returns a single response.

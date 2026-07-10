@@ -38,6 +38,7 @@ async def lifespan(app: FastAPI):
     Initialize the Client and add it to request.state
     """
     client = create_client()
+    # await client.ensure_model_ready()
     app.state.llm_client = client
     yield
 

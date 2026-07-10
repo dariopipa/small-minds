@@ -17,16 +17,48 @@ class OllamaClient(LLMClientI):
         self.config = config.config
         self.client = AsyncClient()
 
-    async def load_model(self) -> None:
+    async def ensure_model_ready(self) -> None:
         model_exists = await self._check_model_existence()
 
-        if model_exists is False:
+        if not model_exists:
             raise ModelNotFoundException(f"Model '{self.model_name}' was not found.")
 
-        await self._pre_load_model()
+        try:
+            # To load a model in OLLAMA an empty prompt must be sent.
+            await self._generate_call(prompt="")
+
+        except ollama.RequestError as e:
+            raise ModelLoadException("Could not communicate with Ollama.") from e
+
+        except ollama.ResponseError as e:
+            if e.status_code == 404:
+                raise ModelNotFoundException(
+                    f"Model '{self.model_name}' was not found while warming up."
+                ) from e
+
+            raise ModelLoadException(
+                f"Could not warm up model '{self.model_name}'."
+            ) from e
 
     async def generate(self, prompt: str) -> LLMResponse:
-        response = await self._generate_call(prompt=prompt)
+        try:
+            response = await self._generate_call(prompt=prompt)
+
+        except (ConnectionError, httpx.ConnectError) as e:
+            raise ModelLoadException("Cannot connect to Ollama.") from e
+
+        except ollama.RequestError as e:
+            raise ModelLoadException("Cannot communicate with Ollama.") from e
+
+        except ollama.ResponseError as e:
+            if e.status_code == 404:
+                raise ModelNotFoundException(
+                    f"Model '{self.model_name}' was not found while generating."
+                ) from e
+
+            raise ModelLoadException(
+                f"Could not generate with model '{self.model_name}'."
+            ) from e
 
         return LLMResponse(
             response=response.response,
@@ -52,33 +84,10 @@ class OllamaClient(LLMClientI):
             return False
 
         except (ConnectionError, httpx.ConnectError) as e:
-            raise ModelLoadException(
-                "Cannot connect to Ollama. Is Ollama running?"
-            ) from e
+            raise ModelLoadException("Cannot connect to Ollama.") from e
 
         except ollama.RequestError as e:
-            raise ModelLoadException(
-                "Cannot communicate with Ollama. Is Ollama running?"
-            ) from e
-
-    async def _pre_load_model(self) -> bool:
-        try:
-            # To load a model in OLLAMA an empty prompt must be sent.
-            await self._generate_call(prompt="")
-            return True
-
-        except ollama.RequestError as e:
-            raise ModelLoadException("Could not communicate with Ollama.") from e
-
-        except ollama.ResponseError as e:
-            if e.status_code == 404:
-                raise ModelNotFoundException(
-                    f"Model '{self.model_name}' was not found while preloading."
-                ) from e
-
-            raise ModelLoadException(
-                f"Could not preload model '{self.model_name}'."
-            ) from e
+            raise ModelLoadException("Cannot communicate with Ollama.") from e
 
     async def _generate_call(self, prompt: str = "") -> Any:
         return await self.client.generate(
