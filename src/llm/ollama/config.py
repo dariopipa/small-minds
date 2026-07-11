@@ -22,8 +22,14 @@ class OllamaModelOptions(BaseModel):
     top_p: float | None = None
     min_p: float | None = None
     stop: list[str] | None = None
-    num_ctx: int | None = None
-    num_predict: int | None = None
+    num_ctx: int | None = Field(
+        default=None,
+        validation_alias="context_window",
+    )
+    num_predict: int | None = Field(
+        default=None,
+        validation_alias="max_output_tokens",
+    )
 
     def to_dict(self) -> dict:
         return self.model_dump(exclude_none=True)

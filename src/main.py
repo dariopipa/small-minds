@@ -3,33 +3,42 @@ import sys
 import time
 
 from fastapi import FastAPI
+import yaml
 
-from evaluation.lm_eval_config_models import (
+from evaluation.lm_eval_config import (
     LLMEvalHarnessConfig,
-    LocalCompletionsModelArgs,
 )
+from llm.client_interface import LLMClientI
 from llm.factories import LLMClientFactory
-from llm.ollama.config import OllamaConfig, OllamaModelOptions, OllamaProviderConfig
+from llm.ollama.config import OllamaProviderConfig
 from evaluation.lm_eval_harness import LLMEvalHarness
 from api.routes import routes
 
 
-# TODO: REMOVE AND CENTRALIZE THE CONFIGURATION
-
 MODEL_NAME = "qwen2.5:3b"
 OLLAMA_CHAT_URL = "http://localhost:11434/v1"
-BASE_URL = "http://127.0.0.1:8000/v1/completions"
+
+# THIS URL WILL POINT IT TO OUR LOCAL MODEL, 
+# WHICH WILL ALLOW US TO RUN WHATEVER STRATEGY WE WANT AND ALSO SAVE BENCHMARK INFORMATION
+EXPOSED_FASTAPI_URL = "http://127.0.0.1:8000/v1/completions"
 
 
-def create_client():
-    return LLMClientFactory.create(
-        config=OllamaProviderConfig(
-            provider="ollama",
-            model_name=MODEL_NAME,
-            options=OllamaModelOptions(seed=42, temperature=0),
-            config=OllamaConfig(stream=False, think=False, keep_alive="60m"),
-        )
-    )
+def load_provider_config() -> OllamaProviderConfig:
+    with open("..\\src\\configs\\provider.yaml") as f:
+        data = yaml.safe_load(f)
+
+    return OllamaProviderConfig.model_validate(data)
+
+
+def load_llm_eval_config() -> LLMEvalHarnessConfig:
+    with open("..\\src\\configs\\llm_eval_harness.yaml") as f:
+        data = yaml.safe_load(f)
+
+    return LLMEvalHarnessConfig.model_validate(data)
+
+
+def create_client() -> LLMClientI:
+    return LLMClientFactory.create(load_provider_config())
 
 
 @asynccontextmanager
@@ -38,7 +47,7 @@ async def lifespan(app: FastAPI):
     Initialize the Client and add it to request.state
     """
     client = create_client()
-    # await client.ensure_model_ready()
+    await client.ensure_model_ready()
     app.state.llm_client = client
     yield
 
@@ -54,33 +63,7 @@ def main():
         wall_start = time.perf_counter()
         cpu_start = time.process_time()
 
-        eval_harness = LLMEvalHarness(
-            config=LLMEvalHarnessConfig(
-                backend="local-completions",
-                model_args=LocalCompletionsModelArgs(
-                    model=MODEL_NAME,
-                    base_url=BASE_URL,
-                    tokenizer_backend="none",
-                    tokenized_requests=False,
-                    eos_string="<|im_end|>",
-                    num_concurrent=2,
-                    timeout=180,
-                ),
-                system_instruction=(
-                    "Solve the math problem step by step.\n"
-                    "At the end, output the final answer on its own line in exactly this format:\n"
-                    "#### <number>\n"
-                    "Do not put anything after the final answer line.\n\n"
-                ),
-                tasks=["gsm8k"],
-                num_fewshot=2,
-                batch_size=1,
-                limit=1,
-                log_samples=False,
-                write_out=False,
-                bootstrap_iters=10,
-            )
-        )
+        eval_harness = LLMEvalHarness(config=load_llm_eval_config())
 
         results = eval_harness.evaluate()
 
