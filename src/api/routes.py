@@ -3,12 +3,12 @@ from typing import Annotated
 import uuid
 
 from fastapi import APIRouter, Depends, Request
+from agents.agent import Agent
 from api.responses.chat_completion import (
     CompletionChoice,
     CompletionResponse,
     CompletionUsage,
 )
-from llm.client_interface import LLMClientI
 from api.requests.chat_completion import (
     CompletionRequest,
 )
@@ -16,18 +16,17 @@ from api.requests.chat_completion import (
 routes = APIRouter()
 
 
-def get_llm_client(request: Request) -> LLMClientI:
-    return request.app.state.llm_client
+def get_agent(request: Request) -> Agent:
+    return request.app.state.agent
 
 
 @routes.post("/v1/completions")
 async def completions(
     request: CompletionRequest,
-    client: Annotated[LLMClientI, Depends(get_llm_client)],
+    agent: Annotated[Agent, Depends(get_agent)],
 ) -> CompletionResponse:
 
-    # add options in the generate function
-    result = await client.generate(prompt=request.prompt, stop=request.stop)
+    result = await agent.run(request.prompt, stop=request.stop)
 
     # change the response.
     response = CompletionResponse(
@@ -48,7 +47,5 @@ async def completions(
             total_tokens=result.prompt_tokens + result.output_tokens,
         ),
     )
-
-    # todo: strategy_service.call(clientI,prompt,options)
 
     return response

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from llm.schemas import LLMResponse
+from llm.responses import LLMResponse
 
 
 class LLMClientI(ABC):

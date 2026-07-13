@@ -4,7 +4,7 @@ import httpx
 import ollama
 from ollama import AsyncClient
 
-from llm.schemas import LLMResponse
+from llm.responses import LLMResponse
 from llm.ollama.config import OllamaProviderConfig
 from common.exceptions import ModelLoadException, ModelNotFoundException
 from llm.client_interface import LLMClientI
@@ -18,14 +18,14 @@ class OllamaClient(LLMClientI):
         self.client = AsyncClient()
 
     async def ensure_model_ready(self) -> None:
-        model_exists = await self._check_model_existence()
+        model_exists = await self._model_exists()
 
         if not model_exists:
             raise ModelNotFoundException(f"Model '{self.model_name}' was not found.")
 
         try:
             # To load a model in OLLAMA an empty prompt must be sent.
-            await self._generate_call(prompt="", stop=None)
+            await self._generate(prompt="", stop=None)
 
         except ollama.RequestError as e:
             raise ModelLoadException("Could not communicate with Ollama.") from e
@@ -42,7 +42,7 @@ class OllamaClient(LLMClientI):
 
     async def generate(self, prompt: str, stop: list[str] | None = None) -> LLMResponse:
         try:
-            response = await self._generate_call(prompt=prompt, stop=stop)
+            response = await self._generate(prompt=prompt, stop=stop)
 
         except (ConnectionError, httpx.ConnectError) as e:
             raise ModelLoadException("Cannot connect to Ollama.") from e
@@ -72,7 +72,7 @@ class OllamaClient(LLMClientI):
     async def chat_bot(self):
         return "chaaaaaaaaaaaaaaat-boooooooooooot"
 
-    async def _check_model_existence(self) -> bool:
+    async def _model_exists(self) -> bool:
         try:
             response = await self.client.list()
             models = response.models
@@ -89,7 +89,7 @@ class OllamaClient(LLMClientI):
         except ollama.RequestError as e:
             raise ModelLoadException("Cannot communicate with Ollama.") from e
 
-    async def _generate_call(self, stop: list[str] | None, prompt: str = "") -> Any:
+    async def _generate(self, stop: list[str] | None, prompt: str = "") -> Any:
         options = self.options.to_dict()
 
         if stop is not None:

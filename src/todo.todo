@@ -1,3 +1,0 @@
-4. Make `main.py` follow a single responsibility.
-5. Centralize the configuration for running experiments.
-6. Explore agents.

@@ -5,22 +5,15 @@ import time
 from fastapi import FastAPI
 import yaml
 
-from evaluation.lm_eval_config import (
-    LLMEvalHarnessConfig,
-)
-from llm.client_interface import LLMClientI
-from llm.factories import LLMClientFactory
-from llm.ollama.config import OllamaProviderConfig
-from evaluation.lm_eval_harness import LLMEvalHarness
+from agents.agent import Agent
 from api.routes import routes
-
-
-MODEL_NAME = "qwen2.5:3b"
-OLLAMA_CHAT_URL = "http://localhost:11434/v1"
-
-# THIS URL WILL POINT IT TO OUR LOCAL MODEL,
-# WHICH WILL ALLOW US TO RUN WHATEVER STRATEGY WE WANT AND ALSO SAVE BENCHMARK INFORMATION
-EXPOSED_FASTAPI_URL = "http://127.0.0.1:8000/v1/completions"
+from evaluation.lm_eval_config import LLMEvalHarnessConfig
+from evaluation.lm_eval_harness import LLMEvalHarness
+from extractors.answer_extractor_interface import AnswerExtractorI
+from extractors.extractor_factory import create_extractor
+from llm.client_interface import LLMClientI
+from llm.client_factory import LLMClientFactory
+from llm.ollama.config import OllamaProviderConfig
 
 
 def load_provider_config() -> OllamaProviderConfig:
@@ -37,18 +30,36 @@ def load_llm_eval_config() -> LLMEvalHarnessConfig:
     return LLMEvalHarnessConfig.model_validate(data)
 
 
-def create_client() -> LLMClientI:
-    return LLMClientFactory.create(load_provider_config())
+def create_llm_client(provider_config: OllamaProviderConfig) -> LLMClientI:
+    return LLMClientFactory.create(provider_config)
+
+
+def create_answer_extractor(config: LLMEvalHarnessConfig) -> AnswerExtractorI:
+    return create_extractor(config.tasks)
+
+
+def create_agent(
+    client: LLMClientI,
+    answer_extractor: AnswerExtractorI,
+) -> Agent:
+    return Agent(
+        llm_client=client,
+        answer_extractor=answer_extractor,
+    )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Run at startup
-    Initialize the Client and add it to request.state
-    """
-    client = create_client()
+    provider_config = load_provider_config()
+    eval_config = load_llm_eval_config()
+
+    client = create_llm_client(provider_config)
     await client.ensure_model_ready()
-    app.state.llm_client = client
+
+    answer_extractor = create_answer_extractor(eval_config)
+    agent = create_agent(client, answer_extractor)
+
+    app.state.agent = agent
     yield
 
 
@@ -58,15 +69,14 @@ app.include_router(router=routes)
 
 def main():
     try:
-        # TODO: Remove
         print("MAIN CALLED")
         wall_start = time.perf_counter()
         cpu_start = time.process_time()
 
-        eval_harness = LLMEvalHarness(config=load_llm_eval_config())
+        eval_config = load_llm_eval_config()
+        eval_harness = LLMEvalHarness(config=eval_config)
 
         results = eval_harness.evaluate()
-        # print(results)
 
         wall_end = time.perf_counter()
         cpu_end = time.process_time()
