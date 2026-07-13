@@ -25,7 +25,7 @@ class OllamaClient(LLMClientI):
 
         try:
             # To load a model in OLLAMA an empty prompt must be sent.
-            await self._generate_call(prompt="")
+            await self._generate_call(prompt="", stop=None)
 
         except ollama.RequestError as e:
             raise ModelLoadException("Could not communicate with Ollama.") from e
@@ -40,9 +40,9 @@ class OllamaClient(LLMClientI):
                 f"Could not warm up model '{self.model_name}'."
             ) from e
 
-    async def generate(self, prompt: str) -> LLMResponse:
+    async def generate(self, prompt: str, stop: list[str] | None = None) -> LLMResponse:
         try:
-            response = await self._generate_call(prompt=prompt)
+            response = await self._generate_call(prompt=prompt, stop=stop)
 
         except (ConnectionError, httpx.ConnectError) as e:
             raise ModelLoadException("Cannot connect to Ollama.") from e
@@ -89,10 +89,15 @@ class OllamaClient(LLMClientI):
         except ollama.RequestError as e:
             raise ModelLoadException("Cannot communicate with Ollama.") from e
 
-    async def _generate_call(self, prompt: str = "") -> Any:
+    async def _generate_call(self, stop: list[str] | None, prompt: str = "") -> Any:
+        options = self.options.to_dict()
+
+        if stop is not None:
+            options["stop"] = stop
+
         return await self.client.generate(
             model=self.model_name,
             prompt=prompt,
-            options=self.options.to_dict(),
+            options=options,
             **self.config.to_generate_kwargs(),
         )

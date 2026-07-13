@@ -1,7 +1,7 @@
 backend: local-completions
 
 model_args:
-  model: "qwen2.5:7b"
+  # model: "qwen2.5:3b" can be removed its just metadata
   base_url: "http://127.0.0.1:8000/v1/completions"
   tokenizer_backend: "none"
   tokenized_requests: false
@@ -22,5 +22,5 @@ num_fewshot: 2
 batch_size: 1
 limit: 10
 log_samples: false
-write_out: false
+write_out: True
 bootstrap_iters: 10

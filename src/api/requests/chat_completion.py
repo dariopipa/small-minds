@@ -1,14 +1,10 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class BaseCompletionRequest(BaseModel):
-    model: str
-    max_tokens: int = Field(default=512, ge=1)
-    temperature: float = Field(default=0.0, ge=0.0)
-    stop: list[str] | str | None = None
-    seed: int | None = None
+    stop: list[str] | None = None
 
 
 class ChatMessage(BaseModel):

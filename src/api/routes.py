@@ -27,7 +27,7 @@ async def completions(
 ) -> CompletionResponse:
 
     # add options in the generate function
-    result = await client.generate(prompt=request.prompt)
+    result = await client.generate(prompt=request.prompt, stop=request.stop)
 
     # change the response.
     response = CompletionResponse(

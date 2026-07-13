@@ -9,7 +9,7 @@ class LLMClientI(ABC):
         raise NotImplementedError
 
     # Generate sends a single prompt and returns a single response.
-    async def generate(self, prompt: str) -> LLMResponse:
+    async def generate(self, prompt: str, stop: list[str] | None) -> LLMResponse:
         raise NotImplementedError
 
     @abstractmethod

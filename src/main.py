@@ -18,7 +18,7 @@ from api.routes import routes
 MODEL_NAME = "qwen2.5:3b"
 OLLAMA_CHAT_URL = "http://localhost:11434/v1"
 
-# THIS URL WILL POINT IT TO OUR LOCAL MODEL, 
+# THIS URL WILL POINT IT TO OUR LOCAL MODEL,
 # WHICH WILL ALLOW US TO RUN WHATEVER STRATEGY WE WANT AND ALSO SAVE BENCHMARK INFORMATION
 EXPOSED_FASTAPI_URL = "http://127.0.0.1:8000/v1/completions"
 
@@ -66,6 +66,7 @@ def main():
         eval_harness = LLMEvalHarness(config=load_llm_eval_config())
 
         results = eval_harness.evaluate()
+        # print(results)
 
         wall_end = time.perf_counter()
         cpu_end = time.process_time()
