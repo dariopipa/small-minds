@@ -1,5 +1,5 @@
-from extractors.gsm8k_answer_extractor import GSM8KAnswerExtractor
 from extractors.answer_extractor_interface import AnswerExtractorI
+from extractors.gsm8k_answer_extractor import GSM8KAnswerExtractor
 
 
 def create_extractor(task_name: list[str]) -> AnswerExtractorI:

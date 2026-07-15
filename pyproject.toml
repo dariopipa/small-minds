@@ -17,6 +17,9 @@ add-bounds = "exact"
 [tool.fastapi]
 entrypoint = "main:app"
 
+[tool.ruff.lint]
+extend-select = ["I"]
+
 [dependency-groups]
 dev = [
     "pylint[spelling]==4.0.6",

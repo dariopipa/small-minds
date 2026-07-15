@@ -1,16 +1,17 @@
 import time
-from typing import Annotated
 import uuid
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
+
 from agents.agent import Agent
+from api.requests.chat_completion import (
+    CompletionRequest,
+)
 from api.responses.chat_completion import (
     CompletionChoice,
     CompletionResponse,
     CompletionUsage,
-)
-from api.requests.chat_completion import (
-    CompletionRequest,
 )
 from llm.requests import GenerateRequest
 

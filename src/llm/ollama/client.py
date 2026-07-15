@@ -4,11 +4,11 @@ import httpx
 import ollama
 from ollama import AsyncClient
 
-from llm.requests import GenerateRequest
-from llm.responses import LLMResponse
-from llm.ollama.config import OllamaProviderConfig
 from common.exceptions import ModelLoadException, ModelNotFoundException
 from llm.client_interface import LLMClientI
+from llm.ollama.config import OllamaProviderConfig
+from llm.requests import GenerateRequest
+from llm.responses import LLMResponse
 
 
 class OllamaClient(LLMClientI):

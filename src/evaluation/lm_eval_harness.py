@@ -2,8 +2,8 @@ from typing import Any
 
 from lm_eval.evaluator import simple_evaluate  # type: ignore[import-untyped]
 
-from evaluation.lm_eval_config import LLMEvalHarnessConfig
 from evaluation.evaluator_interface import EvaluatorI
+from evaluation.lm_eval_config import LLMEvalHarnessConfig
 
 
 class LLMEvalHarness(EvaluatorI):
