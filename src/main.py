@@ -53,6 +53,20 @@ async def lifespan(app: FastAPI):
     provider_config = load_provider_config()
     eval_config = load_llm_eval_config()
 
+    # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
+    print(
+        "\n=================================================\n"
+        "+++ FASTAPI SERVER STARTUP +++\n"
+        f"provider: {provider_config.provider}\n"
+        f"model: {provider_config.model_name}\n"
+        f"provider options: {provider_config.options.to_dict()}\n"
+        f"generate config: {provider_config.config.to_generate_kwargs()}\n"
+        f"eval tasks: {eval_config.tasks}\n"
+        f"eval endpoint: {eval_config.model_args.base_url}\n"
+        "====================================================\n",
+        flush=True,
+    )
+
     client = create_llm_client(provider_config)
     await client.ensure_model_ready()
 
@@ -60,6 +74,16 @@ async def lifespan(app: FastAPI):
     agent = create_agent(client, answer_extractor)
 
     app.state.agent = agent
+    # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
+    print(
+        "\n======================================================\n"
+        "+++ FASTAPI SERVER READY +++\n"
+        "agent loaded: yes\n"
+        f"answer extractor tasks: {eval_config.tasks}\n"
+        "completion endpoint: /v1/completions\n"
+        "========================================================\n",
+        flush=True,
+    )
     yield
 
 
@@ -69,11 +93,26 @@ app.include_router(router=routes)
 
 def main():
     try:
-        print("MAIN CALLED")
         wall_start = time.perf_counter()
         cpu_start = time.process_time()
 
         eval_config = load_llm_eval_config()
+        # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
+        print(
+            "\n========================================================================================\n"
+            "+++ EVALUATION START +++\n"
+            f"backend: {eval_config.backend}\n"
+            f"base_url: {eval_config.model_args.base_url}\n"
+            f"tasks: {eval_config.tasks}\n"
+            f"num_fewshot: {eval_config.num_fewshot}\n"
+            f"batch_size: {eval_config.batch_size}\n"
+            f"limit: {eval_config.limit}\n"
+            f"log_samples: {eval_config.log_samples}\n"
+            f"write_out: {eval_config.write_out}\n"
+            f"bootstrap_iters: {eval_config.bootstrap_iters}\n"
+            "========================================================================================\n",
+            flush=True,
+        )
         eval_harness = LLMEvalHarness(config=eval_config)
 
         results = eval_harness.evaluate()
@@ -89,22 +128,31 @@ def main():
         samples = results["n-samples"]["gsm8k"]
         n_shot = results["n-shot"]["gsm8k"]
 
-        print("\n=== GSM8K EVALUATION ===")
-        print(f"Samples evaluated: {samples['effective']} / {samples['original']}")
-        print(f"Few-shot examples: {n_shot}")
-
-        print(f"Exact match strict:   {float(gsm8k['exact_match,strict-match']):.4f}")
+        # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
         print(
-            f"Exact match flexible: {float(gsm8k['exact_match,flexible-extract']):.4f}"
+            "\n========================================================================================\n"
+            "+++ GSM8K EVALUATION RESULTS +++\n"
+            f"samples evaluated: {samples['effective']} / {samples['original']}\n"
+            f"few-shot examples: {n_shot}\n"
+            f"exact match strict: {float(gsm8k['exact_match,strict-match']):.4f}\n"
+            "exact match flexible: "
+            f"{float(gsm8k['exact_match,flexible-extract']):.4f}\n"
+            f"strict stderr: {gsm8k['exact_match_stderr,strict-match']}\n"
+            f"flexible stderr: {gsm8k['exact_match_stderr,flexible-extract']}\n"
+            "========================================================================================\n",
+            flush=True,
         )
 
-        print(f"Strict stderr:   {gsm8k['exact_match_stderr,strict-match']}")
-        print(f"Flexible stderr: {gsm8k['exact_match_stderr,flexible-extract']}")
-
-        print("\n=== TIMING ===")
-        print(f"Wall time: {wall_time:.2f} seconds")
-        print(f"CPU time:  {cpu_time:.2f} seconds")
-        print(f"Wait time: {wait_time:.2f} seconds")
+        # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
+        print(
+            "\n========================================================================================\n"
+            "+++ EVALUATION TIMING +++\n"
+            f"wall time: {wall_time:.2f} seconds\n"
+            f"cpu time: {cpu_time:.2f} seconds\n"
+            f"wait time: {wait_time:.2f} seconds\n"
+            "========================================================================================\n",
+            flush=True,
+        )
 
     except KeyboardInterrupt:
         sys.exit(1)

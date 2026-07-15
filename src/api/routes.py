@@ -12,6 +12,7 @@ from api.responses.chat_completion import (
 from api.requests.chat_completion import (
     CompletionRequest,
 )
+from llm.requests import GenerateRequest
 
 routes = APIRouter()
 
@@ -22,15 +23,47 @@ def get_agent(request: Request) -> Agent:
 
 @routes.post("/v1/completions")
 async def completions(
-    request: CompletionRequest,
+    completion_request: CompletionRequest,
     agent: Annotated[Agent, Depends(get_agent)],
 ) -> CompletionResponse:
 
-    result = await agent.run(request.prompt, stop=request.stop)
+    completion_id = f"cmpl-{uuid.uuid4().hex}"
+    generation_request = GenerateRequest(
+        prompt=completion_request.prompt,
+        stop=completion_request.stop,
+    )
+
+    # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
+    print(
+        "\n========================================================================================\n"
+        "+++ FASTAPI COMPLETION REQUEST +++\n"
+        f"id: {completion_id}\n"
+        f"prompt chars: {len(completion_request.prompt)}\n"
+        f"stop: {completion_request.stop}\n"
+        "prompt preview first 700 chars:\n"
+        f"{completion_request.prompt[:700]}\n"
+        "========================================================================================\n",
+        flush=True,
+    )
+
+    result = await agent.run(generation_request=generation_request)
+
+    # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
+    print(
+        "\n========================================================================================\n"
+        "+++ FASTAPI COMPLETION RESPONSE +++\n"
+        f"id: {completion_id}\n"
+        f"model: {result.model}\n"
+        f"prompt tokens: {result.prompt_tokens}\n"
+        f"completion tokens: {result.output_tokens}\n"
+        f"extracted answer: {result.extracted_response}\n"
+        "========================================================================================\n",
+        flush=True,
+    )
 
     # change the response.
     response = CompletionResponse(
-        id=f"cmpl-{uuid.uuid4().hex}",
+        id=completion_id,
         created=int(time.time()),
         model=str(result.model),
         choices=[

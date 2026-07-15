@@ -4,6 +4,7 @@ import httpx
 import ollama
 from ollama import AsyncClient
 
+from llm.requests import GenerateRequest
 from llm.responses import LLMResponse
 from llm.ollama.config import OllamaProviderConfig
 from common.exceptions import ModelLoadException, ModelNotFoundException
@@ -18,6 +19,15 @@ class OllamaClient(LLMClientI):
         self.client = AsyncClient()
 
     async def ensure_model_ready(self) -> None:
+        # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
+        print(
+            "\n========================================================================================\n"
+            "+++ OLLAMA MODEL CHECK +++\n"
+            f"model: {self.model_name}\n"
+            "checking local Ollama model list\n"
+            "========================================================================================\n",
+            flush=True,
+        )
         model_exists = await self._model_exists()
 
         if not model_exists:
@@ -25,7 +35,19 @@ class OllamaClient(LLMClientI):
 
         try:
             # To load a model in OLLAMA an empty prompt must be sent.
-            await self._generate(prompt="", stop=None)
+            await self._generate(
+                generation_request=GenerateRequest(prompt="", stop=None)
+            )
+            # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
+            print(
+                "\n========================================================================================\n"
+                "+++ OLLAMA MODEL READY +++\n"
+                f"model: {self.model_name}\n"
+                f"default options: {self.options.to_dict()}\n"
+                f"generate config: {self.config.to_generate_kwargs()}\n"
+                "========================================================================================\n",
+                flush=True,
+            )
 
         except ollama.RequestError as e:
             raise ModelLoadException("Could not communicate with Ollama.") from e
@@ -40,9 +62,20 @@ class OllamaClient(LLMClientI):
                 f"Could not warm up model '{self.model_name}'."
             ) from e
 
-    async def generate(self, prompt: str, stop: list[str] | None = None) -> LLMResponse:
+    async def generate(self, generation_request: GenerateRequest) -> LLMResponse:
         try:
-            response = await self._generate(prompt=prompt, stop=stop)
+            # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
+            print(
+                "\n========================================================================================\n"
+                "+++ OLLAMA GENERATE REQUEST +++\n"
+                f"model: {self.model_name}\n"
+                f"prompt chars: {len(generation_request.prompt)}\n"
+                f"effective options: {self._generation_options(generation_request)}\n"
+                f"generate config: {self.config.to_generate_kwargs()}\n"
+                "========================================================================================\n",
+                flush=True,
+            )
+            response = await self._generate(generation_request=generation_request)
 
         except (ConnectionError, httpx.ConnectError) as e:
             raise ModelLoadException("Cannot connect to Ollama.") from e
@@ -60,7 +93,7 @@ class OllamaClient(LLMClientI):
                 f"Could not generate with model '{self.model_name}'."
             ) from e
 
-        return LLMResponse(
+        llm_response = LLMResponse(
             response=response.response,
             model=response.model or self.model_name,
             thinking=getattr(response, "thinking", None),
@@ -68,6 +101,20 @@ class OllamaClient(LLMClientI):
             output_tokens=response.eval_count or 0,
             total_duration_ns=response.total_duration or 0,
         )
+
+        # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
+        print(
+            "\n========================================================================================\n"
+            "+++ OLLAMA GENERATE RESPONSE +++\n"
+            f"model: {llm_response.model}\n"
+            f"prompt tokens: {llm_response.prompt_tokens}\n"
+            f"completion tokens: {llm_response.output_tokens}\n"
+            f"duration seconds: {llm_response.duration_s:.3f}\n"
+            "========================================================================================\n",
+            flush=True,
+        )
+
+        return llm_response
 
     async def chat_bot(self):
         return "chaaaaaaaaaaaaaaat-boooooooooooot"
@@ -89,15 +136,20 @@ class OllamaClient(LLMClientI):
         except ollama.RequestError as e:
             raise ModelLoadException("Cannot communicate with Ollama.") from e
 
-    async def _generate(self, stop: list[str] | None, prompt: str = "") -> Any:
-        options = self.options.to_dict()
-
-        if stop is not None:
-            options["stop"] = stop
-
+    async def _generate(self, generation_request: GenerateRequest) -> Any:
         return await self.client.generate(
             model=self.model_name,
-            prompt=prompt,
-            options=options,
+            prompt=generation_request.prompt,
+            options=self._generation_options(generation_request),
             **self.config.to_generate_kwargs(),
         )
+
+    def _generation_options(
+        self, generation_request: GenerateRequest
+    ) -> dict[str, Any]:
+        options = self.options.to_dict()
+
+        if generation_request.stop is not None:
+            options["stop"] = generation_request.stop
+
+        return options

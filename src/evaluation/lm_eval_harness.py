@@ -22,6 +22,4 @@ class LLMEvalHarness(EvaluatorI):
             log_samples=self.config.log_samples,
             write_out=self.config.write_out,
             bootstrap_iters=self.config.bootstrap_iters,
-            # Arguments for model generation.
-            # gen_kwargs=self.config.gen_kwargs.model_dump(exclude_none=True),
         )

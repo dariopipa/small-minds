@@ -1,0 +1,31 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff check and fix
+        entry: uv run ruff check --fix src
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: ruff-format
+        name: Ruff format
+        entry: uv run ruff format src
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: pylint
+        name: Pylint (non-blocking)
+        entry: pre-commit hazmat ignore-exit-code uv run pylint src
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
+
+      - id: mypy
+        name: Mypy
+        entry: uv run mypy src
+        language: system
+        pass_filenames: false
+        always_run: true

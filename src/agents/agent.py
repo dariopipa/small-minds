@@ -4,8 +4,10 @@ from pydantic import BaseModel
 
 from extractors.answer_extractor_interface import AnswerExtractorI
 from llm.client_interface import LLMClientI
+from llm.requests import GenerateRequest
 
 
+# todo: remove from here, remove Any and make it type specific.
 class AgentResponse(BaseModel):
     response: Any
     extracted_response: Any
@@ -19,8 +21,10 @@ class Agent:
         self.llm_client = llm_client
         self.answer_extractor = answer_extractor
 
-    async def run(self, prompt: str, stop: list[str] | None = None) -> AgentResponse:
-        llm_response = await self.llm_client.generate(prompt=prompt, stop=stop)
+    async def run(self, generation_request: GenerateRequest) -> AgentResponse:
+        llm_response = await self.llm_client.generate(
+            generation_request=generation_request
+        )
 
         return AgentResponse(
             response=llm_response.response,
