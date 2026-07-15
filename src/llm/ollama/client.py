@@ -116,9 +116,6 @@ class OllamaClient(LLMClientI):
 
         return llm_response
 
-    async def chat_bot(self):
-        return "chaaaaaaaaaaaaaaat-boooooooooooot"
-
     async def _model_exists(self) -> bool:
         try:
             response = await self.client.list()
