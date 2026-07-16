@@ -1,3 +1,4 @@
+import logging
 import time
 import uuid
 from typing import Annotated
@@ -14,6 +15,8 @@ from api.responses.chat_completion import (
 )
 from llm.requests import GenerateRequest
 from strategies.strategy_interface import StrategyI
+
+logger = logging.getLogger(__name__)
 
 routes = APIRouter()
 
@@ -37,7 +40,7 @@ async def completions(
     result = await strategy.run(generation_request=generation_request)
 
     # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
-    print(
+    logger.info(
         "\n========================================================================================\n"
         "+++ FASTAPI COMPLETION REQUEST +++\n"
         f"id: {completion_id}\n"
@@ -46,13 +49,10 @@ async def completions(
         "prompt preview first 700 chars:\n"
         f"{completion_request.prompt[:700]}\n"
         "========================================================================================\n",
-        flush=True,
     )
 
-    # result = await agent.run(generation_request=generation_request)
-
     # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
-    print(
+    logger.info(
         "\n========================================================================================\n"
         "+++ FASTAPI COMPLETION RESPONSE +++\n"
         f"id: {completion_id}\n"
@@ -61,7 +61,6 @@ async def completions(
         f"completion tokens: {result.output_tokens}\n"
         f"extracted answer: {result.extracted_response}\n"
         "========================================================================================\n",
-        flush=True,
     )
 
     # change the response.

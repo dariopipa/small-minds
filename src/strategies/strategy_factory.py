@@ -10,4 +10,4 @@ class StrategyFactory:
             case "direct":
                 return DirectStrategy(agent=agent)
             case _:
-                raise ValueError(f"Unsupported answer extractor: {strategy_config}")
+                raise ValueError(f"Unsupported strategy: {strategy_config}")

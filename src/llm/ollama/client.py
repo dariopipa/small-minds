@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 import httpx
@@ -10,6 +11,8 @@ from llm.ollama.config import OllamaProviderConfig
 from llm.requests import GenerateRequest
 from llm.responses import LLMResponse
 
+logger = logging.getLogger(__name__)
+
 
 class OllamaClient(LLMClientI):
     def __init__(self, config: OllamaProviderConfig):
@@ -20,13 +23,12 @@ class OllamaClient(LLMClientI):
 
     async def ensure_model_ready(self) -> None:
         # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
-        print(
+        logger.info(
             "\n========================================================================================\n"
             "+++ OLLAMA MODEL CHECK +++\n"
             f"model: {self.model_name}\n"
             "checking local Ollama model list\n"
             "========================================================================================\n",
-            flush=True,
         )
         model_exists = await self._model_exists()
 
@@ -39,14 +41,13 @@ class OllamaClient(LLMClientI):
                 generation_request=GenerateRequest(prompt="", stop=None)
             )
             # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
-            print(
+            logger.info(
                 "\n========================================================================================\n"
                 "+++ OLLAMA MODEL READY +++\n"
                 f"model: {self.model_name}\n"
                 f"default options: {self.options.to_dict()}\n"
                 f"generate config: {self.config.to_generate_kwargs()}\n"
                 "========================================================================================\n",
-                flush=True,
             )
 
         except ollama.RequestError as e:
@@ -65,7 +66,7 @@ class OllamaClient(LLMClientI):
     async def generate(self, generation_request: GenerateRequest) -> LLMResponse:
         try:
             # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
-            print(
+            logger.info(
                 "\n========================================================================================\n"
                 "+++ OLLAMA GENERATE REQUEST +++\n"
                 f"model: {self.model_name}\n"
@@ -73,7 +74,6 @@ class OllamaClient(LLMClientI):
                 f"effective options: {self._generation_options(generation_request)}\n"
                 f"generate config: {self.config.to_generate_kwargs()}\n"
                 "========================================================================================\n",
-                flush=True,
             )
             response = await self._generate(generation_request=generation_request)
 
@@ -103,7 +103,7 @@ class OllamaClient(LLMClientI):
         )
 
         # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
-        print(
+        logger.info(
             "\n========================================================================================\n"
             "+++ OLLAMA GENERATE RESPONSE +++\n"
             f"model: {llm_response.model}\n"
@@ -111,7 +111,6 @@ class OllamaClient(LLMClientI):
             f"completion tokens: {llm_response.output_tokens}\n"
             f"duration seconds: {llm_response.duration_s:.3f}\n"
             "========================================================================================\n",
-            flush=True,
         )
 
         return llm_response
