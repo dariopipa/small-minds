@@ -4,7 +4,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 
-from agents.agent import Agent
 from api.requests.chat_completion import (
     CompletionRequest,
 )
@@ -14,18 +13,19 @@ from api.responses.chat_completion import (
     CompletionUsage,
 )
 from llm.requests import GenerateRequest
+from strategies.strategy_interface import StrategyI
 
 routes = APIRouter()
 
 
-def get_agent(request: Request) -> Agent:
-    return request.app.state.agent
+def get_strategy(request: Request) -> StrategyI:
+    return request.app.state.strategy
 
 
 @routes.post("/v1/completions")
 async def completions(
     completion_request: CompletionRequest,
-    agent: Annotated[Agent, Depends(get_agent)],
+    strategy: Annotated[StrategyI, Depends(get_strategy)],
 ) -> CompletionResponse:
 
     completion_id = f"cmpl-{uuid.uuid4().hex}"
@@ -33,6 +33,8 @@ async def completions(
         prompt=completion_request.prompt,
         stop=completion_request.stop,
     )
+
+    result = await strategy.run(generation_request=generation_request)
 
     # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
     print(
@@ -47,7 +49,7 @@ async def completions(
         flush=True,
     )
 
-    result = await agent.run(generation_request=generation_request)
+    # result = await agent.run(generation_request=generation_request)
 
     # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
     print(

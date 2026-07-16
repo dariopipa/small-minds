@@ -14,6 +14,8 @@ from extractors.extractor_factory import create_extractor
 from llm.client_factory import LLMClientFactory
 from llm.client_interface import LLMClientI
 from llm.ollama.config import OllamaProviderConfig
+from strategies.strategy_factory import StrategyFactory
+from strategies.strategy_interface import StrategyI
 
 
 def load_provider_config() -> OllamaProviderConfig:
@@ -48,6 +50,13 @@ def create_agent(
     )
 
 
+def run_strategy(
+    strategy_name: str,
+    agent: Agent,
+) -> StrategyI:
+    return StrategyFactory.create_strategy(strategy_config=strategy_name, agent=agent)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     provider_config = load_provider_config()
@@ -73,7 +82,11 @@ async def lifespan(app: FastAPI):
     answer_extractor = create_answer_extractor(eval_config)
     agent = create_agent(client, answer_extractor)
 
+    strategy = run_strategy(strategy_name="direct", agent=agent)
+
     app.state.agent = agent
+    app.state.strategy = strategy
+
     # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
     print(
         "\n======================================================\n"
