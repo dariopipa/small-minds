@@ -17,14 +17,15 @@ class Agent:
         self.agent_config = agent_config
 
     async def run(self, generation_request: GenerateRequest) -> AgentResponse:
+        request = self._build_generation_request(generation_request)
 
         with Timer() as t:
-            llm_response = await self.llm_client.generate(
-                generation_request=generation_request
-            )
+            llm_response = await self.llm_client.generate(generation_request=request)
 
         return AgentResponse(
-            prompt=generation_request.prompt,
+            agent_name=self.agent_config.name,
+            agent_role=self.agent_config.role,
+            prompt=request.prompt,
             response=llm_response.response,
             extracted_response=self.answer_extractor.extract(llm_response.response),
             model=llm_response.model,
@@ -32,3 +33,14 @@ class Agent:
             output_tokens=llm_response.output_tokens,
             latency_s=t.elapsed,
         )
+
+    def _build_generation_request(
+        self, generation_request: GenerateRequest
+    ) -> GenerateRequest:
+        if self.agent_config.system_prompt is None:
+            return generation_request
+
+        prompt = (
+            f"{self.agent_config.system_prompt}\n\nTask:\n{generation_request.prompt}"
+        )
+        return generation_request.model_copy(update={"prompt": prompt})

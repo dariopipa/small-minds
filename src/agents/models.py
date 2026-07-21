@@ -8,6 +8,8 @@ class AgentConfig(BaseModel):
 
 
 class AgentResponse(BaseModel):
+    agent_name: str
+    agent_role: str
     model: str
     prompt: str
     response: str
