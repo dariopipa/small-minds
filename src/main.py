@@ -6,8 +6,11 @@ from pathlib import Path
 
 import yaml
 from fastapi import FastAPI
+from pydantic import TypeAdapter
 
 from agents.agent import Agent
+from agents.agent_factory import AgentFactory
+from agents.models import AgentConfig
 from api.routes import routes
 from evaluation.lm_eval_config import LLMEvalHarnessConfig
 from evaluation.lm_eval_harness import LLMEvalHarness
@@ -16,6 +19,7 @@ from extractors.extractor_factory import create_extractor
 from llm.client_factory import LLMClientFactory
 from llm.client_interface import LLMClientI
 from llm.ollama.config import OllamaProviderConfig
+from strategies.models import StrategyConfig
 from strategies.strategy_factory import StrategyFactory
 from strategies.strategy_interface import StrategyI
 
@@ -31,18 +35,24 @@ def configure_logging() -> None:
     )
 
 
-def load_provider_config() -> OllamaProviderConfig:
-    with open(CONFIG_DIR / "provider.yaml", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
+def load_yaml_config(path: Path) -> dict:
+    with open(path, encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
+
+def load_provider_config() -> OllamaProviderConfig:
+    data = load_yaml_config(CONFIG_DIR / "provider.yaml")
     return OllamaProviderConfig.model_validate(data)
 
 
 def load_llm_eval_config() -> LLMEvalHarnessConfig:
-    with open(CONFIG_DIR / "llm_eval_harness.yaml", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-
+    data = load_yaml_config(CONFIG_DIR / "llm_eval_harness.yaml")
     return LLMEvalHarnessConfig.model_validate(data)
+
+
+def load_strategy_config() -> StrategyConfig:
+    data = load_yaml_config(CONFIG_DIR / "strategies" / "direct.yaml")
+    return TypeAdapter(StrategyConfig).validate_python(data)
 
 
 def create_llm_client(provider_config: OllamaProviderConfig) -> LLMClientI:
@@ -54,20 +64,19 @@ def create_answer_extractor(config: LLMEvalHarnessConfig) -> AnswerExtractorI:
 
 
 def create_agent(
-    client: LLMClientI,
+    agent_config: AgentConfig,
+    llm_client: LLMClientI,
     answer_extractor: AnswerExtractorI,
 ) -> Agent:
-    return Agent(
-        llm_client=client,
+    return AgentFactory.create(
+        agent_config=agent_config,
+        llm_client=llm_client,
         answer_extractor=answer_extractor,
     )
 
 
-def run_strategy(
-    strategy_name: str,
-    agent: Agent,
-) -> StrategyI:
-    return StrategyFactory.create_strategy(strategy_config=strategy_name, agent=agent)
+def create_strategy(strategy_config: StrategyConfig, agent: Agent) -> StrategyI:
+    return StrategyFactory.create_strategy(strategy_config=strategy_config, agent=agent)
 
 
 @asynccontextmanager
@@ -76,6 +85,8 @@ async def lifespan(app: FastAPI):
 
     provider_config = load_provider_config()
     eval_config = load_llm_eval_config()
+    strategy_config = load_strategy_config()
+    agent_config = AgentConfig(name="direct", role="solver")
 
     # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
     logger.info(
@@ -90,12 +101,16 @@ async def lifespan(app: FastAPI):
         "====================================================\n",
     )
 
-    client = create_llm_client(provider_config)
-    await client.ensure_model_ready()
+    llm_client = create_llm_client(provider_config)
+    await llm_client.ensure_model_ready()
 
     answer_extractor = create_answer_extractor(eval_config)
-    agent = create_agent(client, answer_extractor)
-    strategy = run_strategy(strategy_name="direct", agent=agent)
+    agent = create_agent(
+        agent_config=agent_config,
+        llm_client=llm_client,
+        answer_extractor=answer_extractor,
+    )
+    strategy = create_strategy(strategy_config=strategy_config, agent=agent)
 
     app.state.strategy = strategy
 
