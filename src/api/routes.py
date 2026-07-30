@@ -1,6 +1,9 @@
+import json
 import logging
+import os
 import time
 import uuid
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
@@ -14,6 +17,7 @@ from api.responses.chat_completion import (
     CompletionUsage,
 )
 from llm.requests import GenerateRequest
+from strategies.models import StrategyResult
 from strategies.strategy_interface import StrategyI
 
 logger = logging.getLogger(__name__)
@@ -25,6 +29,31 @@ def get_strategy(request: Request) -> StrategyI:
     return request.app.state.strategy
 
 
+def save_strategy_result(
+    path: str | None,
+    completion_id: str,
+    created: int,
+    completion_request: CompletionRequest,
+    result: StrategyResult,
+) -> None:
+    if path is None:
+        return
+
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    record = {
+        "id": completion_id,
+        "created": created,
+        "prompt_chars": len(completion_request.prompt),
+        "stop": completion_request.stop,
+        "strategy_result": result.model_dump(mode="json"),
+    }
+
+    with output_path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
 @routes.post("/v1/completions")
 async def completions(
     completion_request: CompletionRequest,
@@ -32,41 +61,25 @@ async def completions(
 ) -> CompletionResponse:
 
     completion_id = f"cmpl-{uuid.uuid4().hex}"
+    created = int(time.time())
     generation_request = GenerateRequest(
         prompt=completion_request.prompt,
         stop=completion_request.stop,
     )
 
     result = await strategy.run(generation_request=generation_request)
-
-    # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
-    logger.info(
-        "\n========================================================================================\n"
-        "+++ FASTAPI COMPLETION REQUEST +++\n"
-        f"id: {completion_id}\n"
-        f"prompt chars: {len(completion_request.prompt)}\n"
-        f"stop: {completion_request.stop}\n"
-        "prompt preview first 700 chars:\n"
-        f"{completion_request.prompt[:700]}\n"
-        "========================================================================================\n",
-    )
-
-    # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
-    logger.info(
-        "\n========================================================================================\n"
-        "+++ FASTAPI COMPLETION RESPONSE +++\n"
-        f"id: {completion_id}\n"
-        f"model: {result.model}\n"
-        f"prompt tokens: {result.prompt_tokens}\n"
-        f"completion tokens: {result.output_tokens}\n"
-        f"extracted answer: {result.extracted_response}\n"
-        "========================================================================================\n",
+    save_strategy_result(
+        path=os.getenv("STRATEGY_RESULTS_PATH"),
+        completion_id=completion_id,
+        created=created,
+        completion_request=completion_request,
+        result=result,
     )
 
     # change the response.
     response = CompletionResponse(
         id=completion_id,
-        created=int(time.time()),
+        created=created,
         model=str(result.model),
         choices=[
             CompletionChoice(

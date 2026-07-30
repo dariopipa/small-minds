@@ -51,7 +51,7 @@ def load_llm_eval_config() -> LLMEvalHarnessConfig:
 
 
 def load_strategy_config() -> StrategyConfig:
-    data = load_yaml_config(CONFIG_DIR / "strategies" / "direct.yaml")
+    data = load_yaml_config(CONFIG_DIR / "strategy.yaml")
     return TypeAdapter(StrategyConfig).validate_python(data)
 
 
@@ -86,7 +86,7 @@ async def lifespan(app: FastAPI):
     provider_config = load_provider_config()
     eval_config = load_llm_eval_config()
     strategy_config = load_strategy_config()
-    agent_config = AgentConfig(name="direct", role="solver")
+    agent_config = AgentConfig(name=strategy_config.name, role="solver")
 
     # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
     logger.info(
@@ -94,6 +94,9 @@ async def lifespan(app: FastAPI):
         "+++ FASTAPI SERVER STARTUP +++\n"
         f"provider: {provider_config.provider}\n"
         f"model: {provider_config.model_name}\n"
+        f"strategy loaded: {strategy_config.name}\n"
+        f"strategy config: {strategy_config.model_dump()}\n"
+        f"agent config: {agent_config.model_dump()}\n"
         f"provider options: {provider_config.options.to_dict()}\n"
         f"generate config: {provider_config.config.to_generate_kwargs()}\n"
         f"eval tasks: {eval_config.tasks}\n"
@@ -118,7 +121,10 @@ async def lifespan(app: FastAPI):
     logger.info(
         "\n======================================================\n"
         "+++ FASTAPI SERVER READY +++\n"
+        f"strategy loaded: {strategy_config.name}\n"
+        f"strategy config: {strategy_config.model_dump()}\n"
         "agent loaded: yes\n"
+        f"agent config: {agent_config.model_dump()}\n"
         f"answer extractor tasks: {eval_config.tasks}\n"
         "completion endpoint: /v1/completions\n"
         "========================================================\n",
@@ -164,21 +170,24 @@ def main():
         cpu_time = cpu_end - cpu_start
         wait_time = wall_time - cpu_time
 
-        gsm8k = results["results"]["gsm8k"]
-        samples = results["n-samples"]["gsm8k"]
-        n_shot = results["n-shot"]["gsm8k"]
+        task_name = eval_config.tasks[0]
+        task_results = results["results"][task_name]
+        samples = results["n-samples"][task_name]
+        n_shot = results["n-shot"][task_name]
 
         # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
         logger.info(
             "\n========================================================================================\n"
-            "+++ GSM8K EVALUATION RESULTS +++\n"
+            "+++ EVALUATION RESULTS +++\n"
+            f"task: {task_name}\n"
             f"samples evaluated: {samples['effective']} / {samples['original']}\n"
             f"few-shot examples: {n_shot}\n"
-            f"exact match strict: {float(gsm8k['exact_match,strict-match']):.4f}\n"
+            "exact match strict: "
+            f"{float(task_results['exact_match,strict-match']):.4f}\n"
             "exact match flexible: "
-            f"{float(gsm8k['exact_match,flexible-extract']):.4f}\n"
-            f"strict stderr: {gsm8k['exact_match_stderr,strict-match']}\n"
-            f"flexible stderr: {gsm8k['exact_match_stderr,flexible-extract']}\n"
+            f"{float(task_results['exact_match,flexible-extract']):.4f}\n"
+            f"strict stderr: {task_results['exact_match_stderr,strict-match']}\n"
+            f"flexible stderr: {task_results['exact_match_stderr,flexible-extract']}\n"
             "========================================================================================\n",
         )
 

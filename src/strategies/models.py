@@ -21,12 +21,18 @@ class DirectStrategyConfig(BaseModel):
     name: Literal["direct"] = "direct"
 
 
-class MultiStrategyConfig(BaseModel):
-    name: Literal["multi"] = "multi"
+class SelfConsistencyConfig(BaseModel):
+    name: Literal["self-consistency"] = "self-consistency"
     agent_number: PositiveInt
 
 
+class SocietyOfMindsConfig(BaseModel):
+    name: Literal["society-of-minds"] = "society-of-minds"
+    agent_number: PositiveInt
+    debate_rounds: PositiveInt
+
+
 StrategyConfig = Annotated[
-    DirectStrategyConfig | MultiStrategyConfig,
+    DirectStrategyConfig | SelfConsistencyConfig | SocietyOfMindsConfig,
     Field(discriminator="name"),
 ]

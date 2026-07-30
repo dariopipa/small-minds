@@ -14,3 +14,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Experiment artifacts
+outputs/
+experiments/
+results/

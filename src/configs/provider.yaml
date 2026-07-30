@@ -1,12 +1,12 @@
 provider: ollama
 model_name: qwen2.5:3b
 options:
-  seed: 42
-  temperature: 0
+  seed: null
+  temperature: 0.5
   context_window: 8192
-  max_output_tokens: 512
+  max_output_tokens: 1024
   top_k: null
-  top_p: null
+  top_p: 0.9
   min_p: null
 config:
   stream: false
