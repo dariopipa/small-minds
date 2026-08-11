@@ -1,3 +1,4 @@
+import argparse
 import logging
 import sys
 
@@ -15,11 +16,31 @@ logger = logging.getLogger(__name__)
 app = create_app()
 
 
-def main():
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the configured experiments")
+    parser.add_argument("--repetitions", type=int)
+    parser.add_argument("--limit", type=int)
+
+    args = parser.parse_args()
+
+    if args.repetitions is not None and args.repetitions < 1:
+        parser.error("--repetitions must be at least 1")
+
+    if args.limit is not None and args.limit < 1:
+        parser.error("--limit must be at least 1")
+
+    return args
+
+
+def main() -> None:
+    args = parse_args()
     configure_logging()
 
     try:
-        run_evaluation()
+        run_evaluation(
+            repetitions=args.repetitions,
+            question_limit=args.limit,
+        )
     except KeyboardInterrupt:
         sys.exit(1)
     except ConfigurationError as exc:

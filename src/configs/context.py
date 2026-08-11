@@ -1,6 +1,7 @@
 import logging
 import os
 from pathlib import Path
+from urllib.parse import urlencode
 
 from pydantic import TypeAdapter, ValidationError
 
@@ -10,6 +11,7 @@ from configs.experiments import (
     BenchmarkConfig,
     Experiment,
     ExperimentConfig,
+    iter_experiments,
     load_config,
     resolve_experiment,
 )
@@ -27,12 +29,19 @@ BENCHMARKS_CONFIG_PATH = CONFIG_DIR / "benchmarks.yaml"
 EXPERIMENT_CONFIG_PATH = CONFIG_DIR / "experiments.yaml"
 
 
-def load_experiment() -> tuple[ApplicationSettings, ExperimentConfig, Experiment]:
+def load_experiments() -> tuple[
+    ApplicationSettings, ExperimentConfig, list[Experiment]
+]:
     settings = load_config(PROVIDER_CONFIG_PATH, ApplicationSettings)
     benchmarks = load_config(BENCHMARKS_CONFIG_PATH, BenchmarkConfig)
     config = load_config(EXPERIMENT_CONFIG_PATH, ExperimentConfig)
-    selected = resolve_experiment(config, benchmarks, os.getenv("EXPERIMENT"))
-    return settings, config, selected
+    experiment_name = os.getenv("EXPERIMENT")
+    experiments = (
+        [resolve_experiment(config, benchmarks, experiment_name)]
+        if experiment_name is not None
+        else list(iter_experiments(config, benchmarks))
+    )
+    return settings, config, experiments
 
 
 def build_ollama_config(
@@ -79,7 +88,7 @@ def build_llm_eval_config(
     return LLMEvalHarnessConfig(
         backend=settings.evaluation.backend,
         model_args=LocalCompletionsModelArgs(
-            base_url=evaluation_base_url(settings),
+            base_url=evaluation_base_url(settings, experiment.name),
             tokenizer_backend="none",
             tokenized_requests=False,
             eos_string="<|im_end|>",
@@ -112,5 +121,11 @@ def build_strategy_config(experiment: Experiment) -> StrategyConfig:
         ) from exc
 
 
-def evaluation_base_url(settings: ApplicationSettings) -> str:
-    return f"http://{settings.server.host}:{settings.server.port}/v1/completions"
+def evaluation_base_url(
+    settings: ApplicationSettings,
+    experiment_name: str | None = None,
+) -> str:
+    base_url = f"http://{settings.server.host}:{settings.server.port}/v1/completions"
+    if experiment_name is None:
+        return base_url
+    return f"{base_url}?{urlencode({'experiment': experiment_name})}"

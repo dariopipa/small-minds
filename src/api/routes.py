@@ -6,11 +6,9 @@ import uuid
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from api.requests.completion import (
-    CompletionRequest,
-)
+from api.requests.completion import CompletionRequest
 from api.responses.completion import (
     CompletionChoice,
     CompletionResponse,
@@ -18,7 +16,6 @@ from api.responses.completion import (
 )
 from llm.requests import GenerateRequest
 from strategies.base import Strategy
-from strategies.models import StrategyResult
 
 logger = logging.getLogger(__name__)
 
@@ -26,28 +23,28 @@ routes = APIRouter()
 
 
 def get_strategy(request: Request) -> Strategy:
-    return request.app.state.strategy
+    experiment_name = request.query_params.get(
+        "experiment", request.app.state.default_experiment
+    )
+    strategy = request.app.state.strategies.get(experiment_name)
+    if strategy is None:
+        available = ", ".join(request.app.state.strategies)
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Unknown experiment '{experiment_name}'. "
+                f"Available experiments: {available}"
+            ),
+        )
+    return strategy
 
 
-def save_strategy_result(
-    path: str | None,
-    completion_id: str,
-    created: int,
-    completion_request: CompletionRequest,
-    result: StrategyResult,
-) -> None:
+def save_call(record: dict) -> None:
+    path = os.getenv("STRATEGY_RESULTS_PATH")
     if path is None:
         return
 
     output_path = Path(path)
-    record = {
-        "id": completion_id,
-        "created": created,
-        "prompt_chars": len(completion_request.prompt),
-        "stop": completion_request.stop,
-        "strategy_result": result.model_dump(mode="json"),
-    }
-
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("a", encoding="utf-8") as f:
@@ -71,8 +68,26 @@ async def completions(
         prompt=completion_request.prompt,
         stop=completion_request.stop,
     )
+    try:
+        result = await strategy.run(generation_request=generation_request)
+    except Exception as exc:
+        try:
+            save_call(
+                {
+                    "created": created,
+                    "prompt": completion_request.prompt,
+                    "error": {
+                        "type": type(exc).__name__,
+                        "message": str(exc),
+                    },
+                }
+            )
+        except Exception:
+            logger.exception(
+                "Could not persist failed completion: id=%s", completion_id
+            )
+        raise
 
-    result = await strategy.run(generation_request=generation_request)
     logger.info(
         "Completion finished: id=%s strategy=%s model=%s calls=%d tokens=%d",
         completion_id,
@@ -81,15 +96,14 @@ async def completions(
         len(result.agent_responses),
         result.prompt_tokens + result.output_tokens,
     )
-    save_strategy_result(
-        path=os.getenv("STRATEGY_RESULTS_PATH"),
-        completion_id=completion_id,
-        created=created,
-        completion_request=completion_request,
-        result=result,
+    save_call(
+        {
+            "created": created,
+            "prompt": completion_request.prompt,
+            "result": result.model_dump(mode="json"),
+        }
     )
 
-    # change the response.
     response = CompletionResponse(
         id=completion_id,
         created=created,

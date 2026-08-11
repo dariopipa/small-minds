@@ -1,6 +1,7 @@
 run:
   questions: 100
   repetitions: 1
+  output_dir: results
 
 strategies:
   direct:
