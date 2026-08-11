@@ -1,9 +1,9 @@
 import re
 
-from extractors.answer_extractor_interface import AnswerExtractorI
+from extractors.base import AnswerExtractor
 
 
-class ARCChallengeChatAnswerExtractor(AnswerExtractorI):
+class ARCChallengeChatAnswerExtractor(AnswerExtractor):
     def extract(self, text: str) -> str | None:
         stripped = text.strip()
         single_letter = re.fullmatch(r"\(?([ABCD])\)?[.!]?", stripped, re.IGNORECASE)

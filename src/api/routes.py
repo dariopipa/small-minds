@@ -8,24 +8,24 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 
-from api.requests.chat_completion import (
+from api.requests.completion import (
     CompletionRequest,
 )
-from api.responses.chat_completion import (
+from api.responses.completion import (
     CompletionChoice,
     CompletionResponse,
     CompletionUsage,
 )
 from llm.requests import GenerateRequest
+from strategies.base import Strategy
 from strategies.models import StrategyResult
-from strategies.strategy_interface import StrategyI
 
 logger = logging.getLogger(__name__)
 
 routes = APIRouter()
 
 
-def get_strategy(request: Request) -> StrategyI:
+def get_strategy(request: Request) -> Strategy:
     return request.app.state.strategy
 
 
@@ -57,7 +57,7 @@ def save_strategy_result(
 @routes.post("/v1/completions")
 async def completions(
     completion_request: CompletionRequest,
-    strategy: Annotated[StrategyI, Depends(get_strategy)],
+    strategy: Annotated[Strategy, Depends(get_strategy)],
 ) -> CompletionResponse:
 
     completion_id = f"cmpl-{uuid.uuid4().hex}"
@@ -68,6 +68,14 @@ async def completions(
     )
 
     result = await strategy.run(generation_request=generation_request)
+    logger.info(
+        "Completion finished: id=%s strategy=%s model=%s calls=%d tokens=%d",
+        completion_id,
+        result.strategy_name,
+        result.model,
+        len(result.agent_responses),
+        result.prompt_tokens + result.output_tokens,
+    )
     save_strategy_result(
         path=os.getenv("STRATEGY_RESULTS_PATH"),
         completion_id=completion_id,

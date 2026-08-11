@@ -4,7 +4,7 @@ from llm.requests import GenerateRequest
 from llm.responses import LLMResponse
 
 
-class LLMClientI(ABC):
+class LLMClient(ABC):
     @abstractmethod
     async def ensure_model_ready(self) -> None:
         raise NotImplementedError

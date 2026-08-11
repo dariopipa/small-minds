@@ -3,44 +3,31 @@ from collections import Counter
 from agents.agent import Agent
 from llm.requests import GenerateRequest
 from prompts import load_prompt
+from strategies.base import Strategy
 from strategies.models import StrategyResult
-from strategies.strategy_interface import StrategyI
 
 
-# society should be changed into something else like interaction with verification
-class SocietyOfMindsStrategy(StrategyI):
+class SocietyOfMindsStrategy(Strategy):
     def __init__(self, agent: Agent, agent_number: int, debate_rounds: int):
         self.agent = agent
         self.agent_number = agent_number
         self.debate_rounds = debate_rounds
-        self.revision_prompt = load_prompt("society_of_minds", "revision")
+        self.revision_prompt = load_prompt(
+            "strategies",
+            "society_of_minds",
+            "revision",
+        )
 
     async def run(self, generation_request: GenerateRequest) -> StrategyResult:
         agent_responses = []
         current_responses = []
 
-        print("\n" + "=" * 80)
-        print("SOCIETY OF MINDS START")
-        print(f"agents: {self.agent_number}")
-        print(f"debate rounds: {self.debate_rounds}")
-        print("=" * 80)
-
-        for agent_index in range(self.agent_number):
+        for _ in range(self.agent_number):
             agent_response = await self.agent.run(generation_request)
             agent_responses.append(agent_response)
             current_responses.append(agent_response)
 
-            print(
-                "INITIAL ANSWER "
-                f"agent={agent_index + 1} "
-                f"extracted={agent_response.extracted_response}"
-            )
-
-        for round_index in range(self.debate_rounds):
-            print("-" * 80)
-            print(f"SOCIETY OF MINDS ROUND {round_index + 1}")
-            print("-" * 80)
-
+        for _ in range(self.debate_rounds):
             previous_responses = current_responses
             current_responses = []
 
@@ -63,14 +50,6 @@ class SocietyOfMindsStrategy(StrategyI):
                 agent_responses.append(agent_response)
                 current_responses.append(agent_response)
 
-                print(
-                    "UPDATED ANSWER "
-                    f"round={round_index + 1} "
-                    f"agent={agent_index + 1} "
-                    f"previous={own_response.extracted_response} "
-                    f"updated={agent_response.extracted_response}"
-                )
-
         answer_counts = Counter(
             response.extracted_response for response in current_responses
         )
@@ -81,15 +60,6 @@ class SocietyOfMindsStrategy(StrategyI):
             for agent_response in current_responses
             if agent_response.extracted_response == selected_answer
         )
-
-        print("=" * 80)
-        print("SOCIETY OF MINDS FINAL VOTE")
-        print(f"votes: {dict(answer_counts)}")
-        print(f"selected answer: {selected_answer}")
-        print("-" * 80)
-        print("SOCIETY OF MINDS SELECTED RESPONSE")
-        print(selected_response.response)
-        print("=" * 80)
 
         return StrategyResult(
             model=selected_response.model,

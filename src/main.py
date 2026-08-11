@@ -9,30 +9,24 @@ from fastapi import FastAPI
 from pydantic import TypeAdapter
 
 from agents.agent import Agent
-from agents.agent_factory import AgentFactory
+from agents.factory import AgentFactory
 from agents.models import AgentConfig
 from api.routes import routes
+from common.logging_config import configure_logging
 from evaluation.lm_eval_config import LLMEvalHarnessConfig
 from evaluation.lm_eval_harness import LLMEvalHarness
-from extractors.answer_extractor_interface import AnswerExtractorI
-from extractors.extractor_factory import create_extractor
-from llm.client_factory import LLMClientFactory
-from llm.client_interface import LLMClientI
+from extractors.base import AnswerExtractor
+from extractors.factory import create_extractor
+from llm.base import LLMClient
+from llm.factory import LLMClientFactory
 from llm.ollama.config import OllamaProviderConfig
+from strategies.base import Strategy
+from strategies.factory import StrategyFactory
 from strategies.models import StrategyConfig
-from strategies.strategy_factory import StrategyFactory
-from strategies.strategy_interface import StrategyI
 
 logger = logging.getLogger(__name__)
 
 CONFIG_DIR = Path(__file__).resolve().parent / "configs"
-
-
-def configure_logging() -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-    )
 
 
 def load_yaml_config(path: Path) -> dict:
@@ -55,18 +49,18 @@ def load_strategy_config() -> StrategyConfig:
     return TypeAdapter(StrategyConfig).validate_python(data)
 
 
-def create_llm_client(provider_config: OllamaProviderConfig) -> LLMClientI:
+def create_llm_client(provider_config: OllamaProviderConfig) -> LLMClient:
     return LLMClientFactory.create(provider_config)
 
 
-def create_answer_extractor(config: LLMEvalHarnessConfig) -> AnswerExtractorI:
+def create_answer_extractor(config: LLMEvalHarnessConfig) -> AnswerExtractor:
     return create_extractor(config.tasks)
 
 
 def create_agent(
     agent_config: AgentConfig,
-    llm_client: LLMClientI,
-    answer_extractor: AnswerExtractorI,
+    llm_client: LLMClient,
+    answer_extractor: AnswerExtractor,
 ) -> Agent:
     return AgentFactory.create(
         agent_config=agent_config,
@@ -75,7 +69,7 @@ def create_agent(
     )
 
 
-def create_strategy(strategy_config: StrategyConfig, agent: Agent) -> StrategyI:
+def create_strategy(strategy_config: StrategyConfig, agent: Agent) -> Strategy:
     return StrategyFactory.create_strategy(strategy_config=strategy_config, agent=agent)
 
 
@@ -88,20 +82,12 @@ async def lifespan(app: FastAPI):
     strategy_config = load_strategy_config()
     agent_config = AgentConfig(name=strategy_config.name, role="solver")
 
-    # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
     logger.info(
-        "\n=================================================\n"
-        "+++ FASTAPI SERVER STARTUP +++\n"
-        f"provider: {provider_config.provider}\n"
-        f"model: {provider_config.model_name}\n"
-        f"strategy loaded: {strategy_config.name}\n"
-        f"strategy config: {strategy_config.model_dump()}\n"
-        f"agent config: {agent_config.model_dump()}\n"
-        f"provider options: {provider_config.options.to_dict()}\n"
-        f"generate config: {provider_config.config.to_generate_kwargs()}\n"
-        f"eval tasks: {eval_config.tasks}\n"
-        f"eval endpoint: {eval_config.model_args.base_url}\n"
-        "====================================================\n",
+        "Starting API: provider=%s model=%s strategy=%s tasks=%s",
+        provider_config.provider,
+        provider_config.model_name,
+        strategy_config.name,
+        ",".join(eval_config.tasks),
     )
 
     llm_client = create_llm_client(provider_config)
@@ -117,17 +103,9 @@ async def lifespan(app: FastAPI):
 
     app.state.strategy = strategy
 
-    # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
     logger.info(
-        "\n======================================================\n"
-        "+++ FASTAPI SERVER READY +++\n"
-        f"strategy loaded: {strategy_config.name}\n"
-        f"strategy config: {strategy_config.model_dump()}\n"
-        "agent loaded: yes\n"
-        f"agent config: {agent_config.model_dump()}\n"
-        f"answer extractor tasks: {eval_config.tasks}\n"
-        "completion endpoint: /v1/completions\n"
-        "========================================================\n",
+        "API ready: endpoint=/v1/completions strategy=%s",
+        strategy_config.name,
     )
     yield
 
@@ -144,20 +122,12 @@ def main():
         cpu_start = time.process_time()
 
         eval_config = load_llm_eval_config()
-        # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
         logger.info(
-            "\n========================================================================================\n"
-            "+++ EVALUATION START +++\n"
-            f"backend: {eval_config.backend}\n"
-            f"base_url: {eval_config.model_args.base_url}\n"
-            f"tasks: {eval_config.tasks}\n"
-            f"num_fewshot: {eval_config.num_fewshot}\n"
-            f"batch_size: {eval_config.batch_size}\n"
-            f"limit: {eval_config.limit}\n"
-            f"log_samples: {eval_config.log_samples}\n"
-            f"write_out: {eval_config.write_out}\n"
-            f"bootstrap_iters: {eval_config.bootstrap_iters}\n"
-            "========================================================================================\n",
+            "Evaluation started: backend=%s tasks=%s fewshot=%d limit=%s",
+            eval_config.backend,
+            ",".join(eval_config.tasks),
+            eval_config.num_fewshot,
+            eval_config.limit,
         )
         eval_harness = LLMEvalHarness(config=eval_config)
 
@@ -170,35 +140,12 @@ def main():
         cpu_time = cpu_end - cpu_start
         wait_time = wall_time - cpu_time
 
-        task_name = eval_config.tasks[0]
-        task_results = results["results"][task_name]
-        samples = results["n-samples"][task_name]
-        n_shot = results["n-shot"][task_name]
-
-        # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
         logger.info(
-            "\n========================================================================================\n"
-            "+++ EVALUATION RESULTS +++\n"
-            f"task: {task_name}\n"
-            f"samples evaluated: {samples['effective']} / {samples['original']}\n"
-            f"few-shot examples: {n_shot}\n"
-            "exact match strict: "
-            f"{float(task_results['exact_match,strict-match']):.4f}\n"
-            "exact match flexible: "
-            f"{float(task_results['exact_match,flexible-extract']):.4f}\n"
-            f"strict stderr: {task_results['exact_match_stderr,strict-match']}\n"
-            f"flexible stderr: {task_results['exact_match_stderr,flexible-extract']}\n"
-            "========================================================================================\n",
-        )
-
-        # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
-        logger.info(
-            "\n========================================================================================\n"
-            "+++ EVALUATION TIMING +++\n"
-            f"wall time: {wall_time:.2f} seconds\n"
-            f"cpu time: {cpu_time:.2f} seconds\n"
-            f"wait time: {wait_time:.2f} seconds\n"
-            "========================================================================================\n",
+            "Evaluation finished: tasks=%s wall=%.2fs cpu=%.2fs wait=%.2fs",
+            ",".join(results.get("results", {})),
+            wall_time,
+            cpu_time,
+            wait_time,
         )
 
     except KeyboardInterrupt:

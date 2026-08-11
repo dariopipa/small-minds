@@ -12,5 +12,5 @@ def read_prompt(path: Path) -> str:
     return prompt
 
 
-def load_prompt(role: str, *context: str) -> str:
-    return read_prompt(PROMPT_ROOT.joinpath(role, *context, "prompt.txt"))
+def load_prompt(*parts: str) -> str:
+    return read_prompt(PROMPT_ROOT.joinpath(*parts).with_suffix(".txt"))

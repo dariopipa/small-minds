@@ -2,11 +2,11 @@ from typing import Any
 
 from lm_eval.evaluator import simple_evaluate  # type: ignore[import-untyped]
 
-from evaluation.evaluator_interface import EvaluatorI
+from evaluation.base import Evaluator
 from evaluation.lm_eval_config import LLMEvalHarnessConfig
 
 
-class LLMEvalHarness(EvaluatorI):
+class LLMEvalHarness(Evaluator):
     def __init__(self, config: LLMEvalHarnessConfig):
         self.config = config
 

@@ -2,11 +2,11 @@ from collections import Counter
 
 from agents.agent import Agent
 from llm.requests import GenerateRequest
+from strategies.base import Strategy
 from strategies.models import StrategyResult
-from strategies.strategy_interface import StrategyI
 
 
-class SelfConsistencyStrategy(StrategyI):
+class SelfConsistencyStrategy(Strategy):
     def __init__(self, agent: Agent, agent_number: int):
         self.agent = agent
         self.agent_number = agent_number

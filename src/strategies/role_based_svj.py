@@ -1,13 +1,13 @@
 from agents.agent import Agent
-from agents.agent_factory import AgentFactory
+from agents.factory import AgentFactory
 from agents.models import AgentConfig
 from llm.requests import GenerateRequest
 from prompts import load_prompt
+from strategies.base import Strategy
 from strategies.models import StrategyResult
-from strategies.strategy_interface import StrategyI
 
 
-class RoleBasedSVJStrategy(StrategyI):
+class RoleBasedSVJStrategy(Strategy):
     def __init__(self, solver: Agent):
         self.solver = solver
         self.verifier = AgentFactory.create(
@@ -26,9 +26,9 @@ class RoleBasedSVJStrategy(StrategyI):
             llm_client=solver.llm_client,
             answer_extractor=solver.answer_extractor,
         )
-        self.solver_prompt = load_prompt("solver")
-        self.verifier_prompt = load_prompt("verifier")
-        self.judge_prompt = load_prompt("judge")
+        self.solver_prompt = load_prompt("strategies", "role_based_svj", "solver")
+        self.verifier_prompt = load_prompt("strategies", "role_based_svj", "verifier")
+        self.judge_prompt = load_prompt("strategies", "role_based_svj", "judge")
 
     async def run(self, generation_request: GenerateRequest) -> StrategyResult:
         question = generation_request.prompt

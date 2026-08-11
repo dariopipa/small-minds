@@ -1,15 +1,15 @@
 from agents.models import AgentConfig, AgentResponse
 from common.latency_measure import Timer
-from extractors.answer_extractor_interface import AnswerExtractorI
-from llm.client_interface import LLMClientI
+from extractors.base import AnswerExtractor
+from llm.base import LLMClient
 from llm.requests import GenerateRequest
 
 
 class Agent:
     def __init__(
         self,
-        llm_client: LLMClientI,
-        answer_extractor: AnswerExtractorI,
+        llm_client: LLMClient,
+        answer_extractor: AnswerExtractor,
         agent_config: AgentConfig,
     ):
         self.llm_client = llm_client

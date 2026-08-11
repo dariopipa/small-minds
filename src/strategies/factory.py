@@ -1,16 +1,16 @@
 from agents.agent import Agent
+from strategies.base import Strategy
 from strategies.direct import DirectStrategy
 from strategies.models import StrategyConfig
 from strategies.role_based_svj import RoleBasedSVJStrategy
 from strategies.self_consistency import SelfConsistencyStrategy
 from strategies.society_of_minds import SocietyOfMindsStrategy
-from strategies.strategy_interface import StrategyI
 
 
 # mypy: disable-error-code=union-attr
 class StrategyFactory:
     @staticmethod
-    def create_strategy(strategy_config: StrategyConfig, agent: Agent) -> StrategyI:
+    def create_strategy(strategy_config: StrategyConfig, agent: Agent) -> Strategy:
         match strategy_config.name:
             case "direct":
                 return DirectStrategy(agent=agent)

@@ -1,10 +1,10 @@
 from agents.agent import Agent
 from llm.requests import GenerateRequest
+from strategies.base import Strategy
 from strategies.models import StrategyResult
-from strategies.strategy_interface import StrategyI
 
 
-class DirectStrategy(StrategyI):
+class DirectStrategy(Strategy):
     def __init__(self, agent: Agent):
         self.agent = agent
 

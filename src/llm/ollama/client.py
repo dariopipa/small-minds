@@ -6,7 +6,7 @@ import ollama
 from ollama import AsyncClient
 
 from common.exceptions import ModelLoadException, ModelNotFoundException
-from llm.client_interface import LLMClientI
+from llm.base import LLMClient
 from llm.ollama.config import OllamaProviderConfig
 from llm.requests import GenerateRequest
 from llm.responses import LLMResponse
@@ -14,7 +14,7 @@ from llm.responses import LLMResponse
 logger = logging.getLogger(__name__)
 
 
-class OllamaClient(LLMClientI):
+class OllamaClient(LLMClient):
     def __init__(self, config: OllamaProviderConfig):
         self.model_name = config.model_name
         self.options = config.options
@@ -22,13 +22,9 @@ class OllamaClient(LLMClientI):
         self.client = AsyncClient()
 
     async def ensure_model_ready(self) -> None:
-        # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
         logger.info(
-            "\n========================================================================================\n"
-            "+++ OLLAMA MODEL CHECK +++\n"
-            f"model: {self.model_name}\n"
-            "checking local Ollama model list\n"
-            "========================================================================================\n",
+            "Checking Ollama model readiness: model=%s",
+            self.model_name,
         )
         model_exists = await self._model_exists()
 
@@ -40,55 +36,47 @@ class OllamaClient(LLMClientI):
             await self._generate(
                 generation_request=GenerateRequest(prompt="", stop=None)
             )
-            # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
             logger.info(
-                "\n========================================================================================\n"
-                "+++ OLLAMA MODEL READY +++\n"
-                f"model: {self.model_name}\n"
-                f"default options: {self.options.to_dict()}\n"
-                f"generate config: {self.config.to_generate_kwargs()}\n"
-                "========================================================================================\n",
+                "Ollama model ready: model=%s",
+                self.model_name,
             )
 
         except ollama.RequestError as e:
+            logger.exception("Could not communicate with Ollama during warmup")
             raise ModelLoadException("Could not communicate with Ollama.") from e
 
         except ollama.ResponseError as e:
             if e.status_code == 404:
+                logger.exception("Ollama model was not found during warmup")
                 raise ModelNotFoundException(
                     f"Model '{self.model_name}' was not found while warming up."
                 ) from e
 
+            logger.exception("Could not warm up Ollama model")
             raise ModelLoadException(
                 f"Could not warm up model '{self.model_name}'."
             ) from e
 
     async def generate(self, generation_request: GenerateRequest) -> LLMResponse:
         try:
-            # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
-            logger.info(
-                "\n========================================================================================\n"
-                "+++ OLLAMA GENERATE REQUEST +++\n"
-                f"model: {self.model_name}\n"
-                f"prompt chars: {len(generation_request.prompt)}\n"
-                f"effective options: {self._generation_options(generation_request)}\n"
-                f"generate config: {self.config.to_generate_kwargs()}\n"
-                "========================================================================================\n",
-            )
             response = await self._generate(generation_request=generation_request)
 
         except (ConnectionError, httpx.ConnectError) as e:
+            logger.exception("Cannot connect to Ollama")
             raise ModelLoadException("Cannot connect to Ollama.") from e
 
         except ollama.RequestError as e:
+            logger.exception("Cannot communicate with Ollama")
             raise ModelLoadException("Cannot communicate with Ollama.") from e
 
         except ollama.ResponseError as e:
             if e.status_code == 404:
+                logger.exception("Ollama model was not found during generation")
                 raise ModelNotFoundException(
                     f"Model '{self.model_name}' was not found while generating."
                 ) from e
 
+            logger.exception("Could not generate with Ollama model")
             raise ModelLoadException(
                 f"Could not generate with model '{self.model_name}'."
             ) from e
@@ -100,17 +88,6 @@ class OllamaClient(LLMClientI):
             prompt_tokens=response.prompt_eval_count or 0,
             output_tokens=response.eval_count or 0,
             total_duration_ns=response.total_duration or 0,
-        )
-
-        # TODO: REMOVE THIS LATER ON, DEBUGGING PURPOSES
-        logger.info(
-            "\n========================================================================================\n"
-            "+++ OLLAMA GENERATE RESPONSE +++\n"
-            f"model: {llm_response.model}\n"
-            f"prompt tokens: {llm_response.prompt_tokens}\n"
-            f"completion tokens: {llm_response.output_tokens}\n"
-            f"duration seconds: {llm_response.duration_s:.3f}\n"
-            "========================================================================================\n",
         )
 
         return llm_response
@@ -127,9 +104,11 @@ class OllamaClient(LLMClientI):
             return False
 
         except (ConnectionError, httpx.ConnectError) as e:
+            logger.exception("Cannot connect to Ollama while listing models")
             raise ModelLoadException("Cannot connect to Ollama.") from e
 
         except ollama.RequestError as e:
+            logger.exception("Cannot communicate with Ollama while listing models")
             raise ModelLoadException("Cannot communicate with Ollama.") from e
 
     async def _generate(self, generation_request: GenerateRequest) -> Any:

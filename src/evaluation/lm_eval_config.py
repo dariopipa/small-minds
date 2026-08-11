@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict, Field
 class LocalCompletionsModelArgs(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    # model: str
     base_url: str
     tokenizer_backend: Literal["none"] = "none"
     tokenized_requests: bool = False
