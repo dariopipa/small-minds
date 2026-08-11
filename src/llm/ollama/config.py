@@ -15,7 +15,7 @@ class OllamaConfig(BaseModel):
 
 
 class OllamaModelOptions(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_by_name=True)
 
     seed: int | None = None
     temperature: float | None = None

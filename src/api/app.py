@@ -12,10 +12,10 @@ from common.exceptions import (
 )
 from common.logging_config import configure_logging
 from configs.context import (
-    load_experiment_context,
-    load_llm_eval_config,
-    load_ollama_provider_config,
-    load_strategy_config,
+    build_llm_eval_config,
+    build_ollama_config,
+    build_strategy_config,
+    load_experiment,
 )
 from extractors.factory import create_extractor
 from llm.factory import LLMClientFactory
@@ -26,13 +26,17 @@ logger = logging.getLogger(__name__)
 
 
 async def build_selected_strategy() -> tuple[Strategy, str]:
-    context = load_experiment_context()
-    provider_config = load_ollama_provider_config(context)
-    eval_config = load_llm_eval_config(context)
-    strategy_config = load_strategy_config(context)
+    provider, config, experiment = load_experiment()
+    provider_config = build_ollama_config(provider, experiment)
+    eval_config = build_llm_eval_config(
+        provider,
+        experiment,
+        question_limit=config.run.questions,
+    )
+    strategy_config = build_strategy_config(experiment)
     logger.info(
         "Starting API: experiment=%s provider=%s model=%s strategy=%s tasks=%s",
-        context.selected.name,
+        experiment.name,
         provider_config.provider,
         provider_config.model_name,
         strategy_config.name,
@@ -42,7 +46,7 @@ async def build_selected_strategy() -> tuple[Strategy, str]:
     llm_client = LLMClientFactory.create(provider_config)
     await llm_client.ensure_model_ready()
 
-    answer_extractor = create_extractor(context.selected.benchmark.task)
+    answer_extractor = create_extractor(experiment.benchmark.task)
     strategy = StrategyFactory.create_strategy(
         strategy_config=strategy_config,
         agent_factory=AgentFactory(

@@ -1,12 +1,14 @@
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, ValidationError
 
 from common.exceptions import ConfigurationError
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class ConfigModel(BaseModel):
@@ -90,30 +92,12 @@ class Experiment:
     strategy: Strategy
 
 
-def load_provider_config(path: Path) -> ProviderConfig:
+def load_config(path: Path, model: type[T]) -> T:
     try:
-        return ProviderConfig.model_validate(load_yaml(path))
+        return model.model_validate(load_yaml(path))
     except ValidationError as exc:
         raise ConfigurationError(
-            f"Invalid provider configuration in {path}:\n{exc}"
-        ) from exc
-
-
-def load_benchmark_config(path: Path) -> BenchmarkConfig:
-    try:
-        return BenchmarkConfig.model_validate(load_yaml(path))
-    except ValidationError as exc:
-        raise ConfigurationError(
-            f"Invalid benchmark configuration in {path}:\n{exc}"
-        ) from exc
-
-
-def load_experiment_config(path: Path) -> ExperimentConfig:
-    try:
-        return ExperimentConfig.model_validate(load_yaml(path))
-    except ValidationError as exc:
-        raise ConfigurationError(
-            f"Invalid experiment configuration in {path}:\n{exc}"
+            f"Invalid {model.__name__} configuration in {path}:\n{exc}"
         ) from exc
 
 
@@ -137,34 +121,25 @@ def load_yaml(path: Path) -> Any:
 
 
 def validate_config(experiment: ExperimentConfig, benchmarks: BenchmarkConfig) -> None:
-    duplicate_benchmarks = find_duplicates(experiment.matrix.benchmarks)
-    if duplicate_benchmarks:
+    validate_names(experiment.matrix.benchmarks, benchmarks.benchmarks, "benchmark")
+    validate_names(experiment.matrix.strategies, experiment.strategies, "strategy")
+
+
+def validate_names(
+    selected: list[str], available: Mapping[str, object], kind: str
+) -> None:
+    duplicates = find_duplicates(selected)
+    if duplicates:
         raise ConfigurationError(
-            "Duplicate benchmark matrix entries: " + ", ".join(duplicate_benchmarks)
+            f"Duplicate {kind} matrix entries: " + ", ".join(duplicates)
         )
 
-    duplicate_strategies = find_duplicates(experiment.matrix.strategies)
-    if duplicate_strategies:
+    missing = sorted(set(selected) - set(available))
+    if missing:
+        available_names = "\n".join(f"  {name}" for name in sorted(available))
         raise ConfigurationError(
-            "Duplicate strategy matrix entries: " + ", ".join(duplicate_strategies)
-        )
-
-    missing_benchmarks = set(experiment.matrix.benchmarks) - set(benchmarks.benchmarks)
-    if missing_benchmarks:
-        available = "\n".join(f"  {name}" for name in sorted(benchmarks.benchmarks))
-        raise ConfigurationError(
-            "Unknown benchmarks in experiment matrix: "
-            + ", ".join(sorted(missing_benchmarks))
-            + f"\n\nAvailable benchmarks:\n{available}"
-        )
-
-    missing_strategies = set(experiment.matrix.strategies) - set(experiment.strategies)
-    if missing_strategies:
-        available = "\n".join(f"  {name}" for name in sorted(experiment.strategies))
-        raise ConfigurationError(
-            "Unknown strategies in experiment matrix: "
-            + ", ".join(sorted(missing_strategies))
-            + f"\n\nAvailable configured strategies:\n{available}"
+            f"Unknown {kind}s in experiment matrix: {', '.join(missing)}"
+            f"\n\nAvailable {kind}s:\n{available_names}"
         )
 
 
@@ -191,18 +166,19 @@ def resolve_experiment(
     benchmarks: BenchmarkConfig,
     experiment_name: str | None,
 ) -> Experiment:
-    experiments = list(iter_experiments(experiment, benchmarks))
+    experiments = iter_experiments(experiment, benchmarks)
     if experiment_name is None:
-        return experiments[0]
+        return next(experiments)
 
+    available: list[str] = []
     for item in experiments:
         if item.name == experiment_name:
             return item
+        available.append(item.name)
 
-    available = ", ".join(item.name for item in experiments)
     raise ConfigurationError(
         f"Experiment is not defined: {experiment_name}. "
-        f"Available experiments: {available}"
+        f"Available experiments: {', '.join(available)}"
     )
 
 
