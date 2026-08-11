@@ -12,7 +12,7 @@ def read_prompt(path: Path) -> str:
     try:
         prompt = path.read_text(encoding="utf-8").strip()
     except OSError as exc:
-        raise ConfigurationError(f"Could not read prompt file {path}: {exc}") from exc
+        raise RuntimeError(f"Could not read prompt file {path}: {exc}") from exc
 
     if not prompt:
         raise ConfigurationError(f"Prompt file is empty: {path}")

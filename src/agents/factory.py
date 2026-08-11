@@ -5,14 +5,17 @@ from llm.base import LLMClient
 
 
 class AgentFactory:
-    @staticmethod
-    def create(
-        agent_config: AgentConfig,
+    def __init__(
+        self,
         llm_client: LLMClient,
         answer_extractor: AnswerExtractor,
-    ) -> Agent:
+    ):
+        self.llm_client = llm_client
+        self.answer_extractor = answer_extractor
+
+    def create(self, name: str, role: str) -> Agent:
         return Agent(
-            llm_client=llm_client,
-            answer_extractor=answer_extractor,
-            agent_config=agent_config,
+            llm_client=self.llm_client,
+            answer_extractor=self.answer_extractor,
+            agent_config=AgentConfig(name=name, role=role),
         )

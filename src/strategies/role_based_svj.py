@@ -1,6 +1,4 @@
 from agents.agent import Agent
-from agents.factory import AgentFactory
-from agents.models import AgentConfig
 from llm.requests import GenerateRequest
 from prompts import load_prompt
 from strategies.base import Strategy
@@ -8,24 +6,10 @@ from strategies.models import StrategyResult
 
 
 class RoleBasedSVJStrategy(Strategy):
-    def __init__(self, solver: Agent):
+    def __init__(self, solver: Agent, verifier: Agent, judge: Agent):
         self.solver = solver
-        self.verifier = AgentFactory.create(
-            agent_config=AgentConfig(
-                name="role_based_svj_verifier",
-                role="verifier",
-            ),
-            llm_client=solver.llm_client,
-            answer_extractor=solver.answer_extractor,
-        )
-        self.judge = AgentFactory.create(
-            agent_config=AgentConfig(
-                name="role_based_svj_judge",
-                role="judge",
-            ),
-            llm_client=solver.llm_client,
-            answer_extractor=solver.answer_extractor,
-        )
+        self.verifier = verifier
+        self.judge = judge
         self.solver_prompt = load_prompt("strategies", "role_based_svj", "solver")
         self.verifier_prompt = load_prompt("strategies", "role_based_svj", "verifier")
         self.judge_prompt = load_prompt("strategies", "role_based_svj", "judge")

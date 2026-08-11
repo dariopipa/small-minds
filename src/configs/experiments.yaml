@@ -31,7 +31,7 @@ strategies:
 matrix:
   benchmarks:
     - gsm8k
-    - arc_challenge_chat
+    # - arc_challenge_chat
   strategies:
     - direct
     - self_consistency
