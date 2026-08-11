@@ -12,7 +12,6 @@ from common.exceptions import (
 )
 from common.logging_config import configure_logging
 from configs.context import (
-    build_llm_eval_config,
     build_ollama_config,
     build_strategy_config,
     load_experiment,
@@ -26,21 +25,16 @@ logger = logging.getLogger(__name__)
 
 
 async def build_selected_strategy() -> tuple[Strategy, str]:
-    provider, config, experiment = load_experiment()
-    provider_config = build_ollama_config(provider, experiment)
-    eval_config = build_llm_eval_config(
-        provider,
-        experiment,
-        question_limit=config.run.questions,
-    )
+    settings, _, experiment = load_experiment()
+    provider_config = build_ollama_config(settings, experiment)
     strategy_config = build_strategy_config(experiment)
     logger.info(
-        "Starting API: experiment=%s provider=%s model=%s strategy=%s tasks=%s",
+        "Starting API: experiment=%s provider=%s model=%s strategy=%s task=%s",
         experiment.name,
         provider_config.provider,
         provider_config.model_name,
         strategy_config.name,
-        ",".join(eval_config.tasks),
+        experiment.benchmark.task,
     )
 
     llm_client = LLMClientFactory.create(provider_config)

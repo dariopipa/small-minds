@@ -6,10 +6,10 @@ from pydantic import TypeAdapter, ValidationError
 
 from common.exceptions import ConfigurationError
 from configs.experiments import (
+    ApplicationSettings,
     BenchmarkConfig,
     Experiment,
     ExperimentConfig,
-    ProviderConfig,
     load_config,
     resolve_experiment,
 )
@@ -27,16 +27,16 @@ BENCHMARKS_CONFIG_PATH = CONFIG_DIR / "benchmarks.yaml"
 EXPERIMENT_CONFIG_PATH = CONFIG_DIR / "experiments.yaml"
 
 
-def load_experiment() -> tuple[ProviderConfig, ExperimentConfig, Experiment]:
-    provider = load_config(PROVIDER_CONFIG_PATH, ProviderConfig)
+def load_experiment() -> tuple[ApplicationSettings, ExperimentConfig, Experiment]:
+    settings = load_config(PROVIDER_CONFIG_PATH, ApplicationSettings)
     benchmarks = load_config(BENCHMARKS_CONFIG_PATH, BenchmarkConfig)
     config = load_config(EXPERIMENT_CONFIG_PATH, ExperimentConfig)
     selected = resolve_experiment(config, benchmarks, os.getenv("EXPERIMENT"))
-    return provider, config, selected
+    return settings, config, selected
 
 
 def build_ollama_config(
-    provider: ProviderConfig,
+    settings: ApplicationSettings,
     experiment: Experiment,
 ) -> OllamaProviderConfig:
     generation_options = experiment.strategy.generation.model_dump(exclude_none=True)
@@ -46,23 +46,23 @@ def build_ollama_config(
         experiment.strategy_name,
     )
     return OllamaProviderConfig(
-        provider=provider.provider.name,
-        model_name=provider.provider.model,
+        provider=settings.provider.name,
+        model_name=settings.provider.model,
         options=OllamaModelOptions(
-            num_ctx=provider.provider.context_window,
-            num_predict=provider.provider.max_output_tokens,
+            num_ctx=settings.provider.context_window,
+            num_predict=settings.provider.max_output_tokens,
             **generation_options,
         ),
         config=OllamaConfig(
             stream=False,
             think=False,
-            keep_alive=provider.provider.keep_alive,
+            keep_alive=settings.provider.keep_alive,
         ),
     )
 
 
 def build_llm_eval_config(
-    provider: ProviderConfig,
+    settings: ApplicationSettings,
     experiment: Experiment,
     question_limit: int,
 ) -> LLMEvalHarnessConfig:
@@ -77,23 +77,23 @@ def build_llm_eval_config(
         experiment.benchmark_name,
     )
     return LLMEvalHarnessConfig(
-        backend=provider.evaluation.backend,
+        backend=settings.evaluation.backend,
         model_args=LocalCompletionsModelArgs(
-            base_url=evaluation_base_url(provider),
+            base_url=evaluation_base_url(settings),
             tokenizer_backend="none",
             tokenized_requests=False,
             eos_string="<|im_end|>",
-            num_concurrent=provider.evaluation.concurrency,
-            timeout=provider.evaluation.timeout,
+            num_concurrent=settings.evaluation.concurrency,
+            timeout=settings.evaluation.timeout,
         ),
         system_instruction=system_instruction,
         tasks=[experiment.benchmark.task],
         num_fewshot=experiment.benchmark.num_fewshot,
-        batch_size=provider.evaluation.batch_size,
+        batch_size=settings.evaluation.batch_size,
         limit=question_limit,
-        log_samples=provider.evaluation.log_samples,
-        write_out=provider.evaluation.write_out,
-        bootstrap_iters=provider.evaluation.bootstrap_iters,
+        log_samples=settings.evaluation.log_samples,
+        write_out=settings.evaluation.write_out,
+        bootstrap_iters=settings.evaluation.bootstrap_iters,
     )
 
 
@@ -112,5 +112,5 @@ def build_strategy_config(experiment: Experiment) -> StrategyConfig:
         ) from exc
 
 
-def evaluation_base_url(provider: ProviderConfig) -> str:
-    return f"http://{provider.server.host}:{provider.server.port}/v1/completions"
+def evaluation_base_url(settings: ApplicationSettings) -> str:
+    return f"http://{settings.server.host}:{settings.server.port}/v1/completions"

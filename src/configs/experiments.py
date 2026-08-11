@@ -15,7 +15,7 @@ class ConfigModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class Provider(ConfigModel):
+class ProviderSettings(ConfigModel):
     name: Literal["ollama"]
     model: str
     context_window: PositiveInt
@@ -23,7 +23,7 @@ class Provider(ConfigModel):
     keep_alive: str
 
 
-class Evaluation(ConfigModel):
+class EvaluationSettings(ConfigModel):
     backend: Literal["local-completions"]
     batch_size: int | str = 1
     concurrency: PositiveInt = 1
@@ -33,15 +33,15 @@ class Evaluation(ConfigModel):
     bootstrap_iters: int = Field(default=0, ge=0)
 
 
-class Server(ConfigModel):
+class ServerSettings(ConfigModel):
     host: str = Field(min_length=1)
     port: int = Field(ge=1, le=65535)
 
 
-class ProviderConfig(ConfigModel):
-    provider: Provider
-    evaluation: Evaluation
-    server: Server
+class ApplicationSettings(ConfigModel):
+    provider: ProviderSettings
+    evaluation: EvaluationSettings
+    server: ServerSettings
 
 
 class Benchmark(ConfigModel):
@@ -85,11 +85,14 @@ class ExperimentConfig(ConfigModel):
 
 @dataclass(frozen=True)
 class Experiment:
-    name: str
     benchmark_name: str
     benchmark: Benchmark
     strategy_name: str
     strategy: Strategy
+
+    @property
+    def name(self) -> str:
+        return f"{self.strategy_name}_{self.benchmark_name}"
 
 
 def load_config(path: Path, model: type[T]) -> T:
@@ -153,7 +156,6 @@ def iter_experiments(
         benchmark = benchmarks.benchmarks[benchmark_name]
         for strategy_name in experiment.matrix.strategies:
             yield Experiment(
-                name=f"{strategy_name}_{benchmark_name}",
                 benchmark_name=benchmark_name,
                 benchmark=benchmark,
                 strategy_name=strategy_name,

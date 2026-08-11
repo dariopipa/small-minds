@@ -8,9 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 def run_evaluation() -> dict[str, Any]:
-    provider, config, experiment = load_experiment()
+    settings, config, experiment = load_experiment()
     eval_config = build_llm_eval_config(
-        provider,
+        settings,
         experiment,
         question_limit=config.run.questions,
     )
