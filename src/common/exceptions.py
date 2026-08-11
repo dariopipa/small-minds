@@ -1,3 +1,7 @@
+class ConfigurationError(Exception):
+    """Raised when user-provided configuration is invalid or incomplete."""
+
+
 class ModelLoadException(Exception):
     """Raised when the Provider is not running."""
 

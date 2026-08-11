@@ -1,0 +1,39 @@
+run:
+  questions: 100
+  repetitions: 1
+
+strategies:
+  direct:
+    generation:
+      seed: 42
+      temperature: 0
+
+  self_consistency:
+    generation:
+      temperature: 0.5
+      top_p: 0.9
+    params:
+      agent_number: 3
+
+  society_of_minds:
+    generation:
+      temperature: 0.5
+      top_p: 0.9
+    params:
+      agent_number: 3
+      debate_rounds: 2
+
+  role_based_svj:
+    generation:
+      seed: 42
+      temperature: 0
+
+matrix:
+  benchmarks:
+    - gsm8k
+    - arc_challenge_chat
+  strategies:
+    - direct
+    - self_consistency
+    - society_of_minds
+    - role_based_svj

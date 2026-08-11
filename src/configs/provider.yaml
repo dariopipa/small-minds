@@ -1,14 +1,19 @@
-provider: ollama
-model_name: qwen2.5:3b
-options:
-  seed: null
-  temperature: 0.5
+provider:
+  name: ollama
+  model: qwen2.5:3b
   context_window: 8192
-  max_output_tokens: 1024
-  top_k: null
-  top_p: 0.9
-  min_p: null
-config:
-  stream: false
-  think: false
+  max_output_tokens: 512
   keep_alive: 60m
+
+evaluation:
+  backend: local-completions
+  batch_size: 1
+  concurrency: 1
+  timeout: 180
+  log_samples: true
+  write_out: false
+  bootstrap_iters: 0
+
+server:
+  host: 127.0.0.1
+  port: 8000

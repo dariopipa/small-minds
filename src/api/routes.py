@@ -40,8 +40,6 @@ def save_strategy_result(
         return
 
     output_path = Path(path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
     record = {
         "id": completion_id,
         "created": created,
@@ -50,8 +48,15 @@ def save_strategy_result(
         "strategy_result": result.model_dump(mode="json"),
     }
 
-    with output_path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    try:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with output_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except OSError as exc:
+        raise RuntimeError(
+            f"Could not write strategy result to {output_path}. "
+            "Check STRATEGY_RESULTS_PATH."
+        ) from exc
 
 
 @routes.post("/v1/completions")

@@ -1,0 +1,33 @@
+# Official lm-evaluation-harness task catalog:
+# https://github.com/EleutherAI/lm-evaluation-harness/tree/main/lm_eval/tasks
+#
+# Official lm-evaluation-harness documentation:
+# https://github.com/EleutherAI/lm-evaluation-harness
+#
+# Tasks available in the installed version:
+#   lm-eval ls tasks
+#
+# This file is this project's configured benchmark subset. The harness task
+# defines dataset formatting, filters, metrics, and scoring. An optional prompt
+# here is passed as lm-eval's system_instruction for this project's local server.
+
+benchmarks:
+  # lm-evaluation-harness task:
+  # https://github.com/EleutherAI/lm-evaluation-harness/blob/main/lm_eval/tasks/gsm8k/gsm8k.yaml
+  #
+  # Original benchmark:
+  # https://github.com/openai/grade-school-math
+  gsm8k:
+    task: gsm8k
+    prompt: prompts/benchmarks/gsm8k/system.txt
+    num_fewshot: 5
+
+  # lm-evaluation-harness task:
+  # https://github.com/EleutherAI/lm-evaluation-harness/blob/main/lm_eval/tasks/arc/arc_challenge_chat.yaml
+  #
+  # Original benchmark:
+  # https://allenai.org/data/arc
+  arc_challenge_chat:
+    task: arc_challenge_chat
+    prompt: prompts/benchmarks/arc_challenge_chat/system.txt
+    num_fewshot: 5

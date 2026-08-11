@@ -17,9 +17,7 @@ class LocalCompletionsModelArgs(BaseModel):
 class LLMEvalHarnessConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    backend: Literal["local-completions", "local-chat-completions"] = (
-        "local-completions"
-    )
+    backend: Literal["local-completions"] = "local-completions"
     model_args: LocalCompletionsModelArgs
 
     system_instruction: str | None = None

@@ -1,8 +1,19 @@
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, PositiveInt
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt
 
 from agents.models import AgentResponse
+
+SUPPORTED_STRATEGY_NAMES = (
+    "direct",
+    "role_based_svj",
+    "self_consistency",
+    "society_of_minds",
+)
+
+
+class StrategyConfigModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
 
 class StrategyResult(BaseModel):
@@ -17,20 +28,20 @@ class StrategyResult(BaseModel):
     agent_responses: list[AgentResponse]
 
 
-class DirectStrategyConfig(BaseModel):
+class DirectStrategyConfig(StrategyConfigModel):
     name: Literal["direct"] = "direct"
 
 
-class RoleBasedSVJStrategyConfig(BaseModel):
+class RoleBasedSVJStrategyConfig(StrategyConfigModel):
     name: Literal["role_based_svj"] = "role_based_svj"
 
 
-class SelfConsistencyConfig(BaseModel):
+class SelfConsistencyConfig(StrategyConfigModel):
     name: Literal["self_consistency"] = "self_consistency"
     agent_number: PositiveInt
 
 
-class SocietyOfMindsConfig(BaseModel):
+class SocietyOfMindsConfig(StrategyConfigModel):
     name: Literal["society_of_minds"] = "society_of_minds"
     agent_number: PositiveInt
     debate_rounds: PositiveInt

@@ -43,7 +43,10 @@ class OllamaClient(LLMClient):
 
         except ollama.RequestError as e:
             logger.exception("Could not communicate with Ollama during warmup")
-            raise ModelLoadException("Could not communicate with Ollama.") from e
+            raise ModelLoadException(
+                f"Could not communicate with Ollama while warming up "
+                f"model '{self.model_name}'."
+            ) from e
 
         except ollama.ResponseError as e:
             if e.status_code == 404:
@@ -63,11 +66,17 @@ class OllamaClient(LLMClient):
 
         except (ConnectionError, httpx.ConnectError) as e:
             logger.exception("Cannot connect to Ollama")
-            raise ModelLoadException("Cannot connect to Ollama.") from e
+            raise ModelLoadException(
+                f"Cannot connect to Ollama while generating with "
+                f"model '{self.model_name}'."
+            ) from e
 
         except ollama.RequestError as e:
             logger.exception("Cannot communicate with Ollama")
-            raise ModelLoadException("Cannot communicate with Ollama.") from e
+            raise ModelLoadException(
+                f"Cannot communicate with Ollama while generating with "
+                f"model '{self.model_name}'."
+            ) from e
 
         except ollama.ResponseError as e:
             if e.status_code == 404:
@@ -105,11 +114,17 @@ class OllamaClient(LLMClient):
 
         except (ConnectionError, httpx.ConnectError) as e:
             logger.exception("Cannot connect to Ollama while listing models")
-            raise ModelLoadException("Cannot connect to Ollama.") from e
+            raise ModelLoadException(
+                f"Cannot connect to Ollama while checking whether "
+                f"model '{self.model_name}' is installed."
+            ) from e
 
         except ollama.RequestError as e:
             logger.exception("Cannot communicate with Ollama while listing models")
-            raise ModelLoadException("Cannot communicate with Ollama.") from e
+            raise ModelLoadException(
+                f"Cannot communicate with Ollama while checking whether "
+                f"model '{self.model_name}' is installed."
+            ) from e
 
     async def _generate(self, generation_request: GenerateRequest) -> Any:
         return await self.client.generate(

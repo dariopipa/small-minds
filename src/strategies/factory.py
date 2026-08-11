@@ -1,4 +1,5 @@
 from agents.agent import Agent
+from common.exceptions import ConfigurationError
 from strategies.base import Strategy
 from strategies.direct import DirectStrategy
 from strategies.models import StrategyConfig
@@ -28,4 +29,6 @@ class StrategyFactory:
                     debate_rounds=strategy_config.debate_rounds,
                 )
             case _:
-                raise ValueError(f"Unsupported strategy: {strategy_config}")
+                raise ConfigurationError(
+                    f"Unsupported strategy implementation: {strategy_config}"
+                )
