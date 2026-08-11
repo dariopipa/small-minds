@@ -22,4 +22,5 @@ class LLMEvalHarness(Evaluator):
             log_samples=self.config.log_samples,
             write_out=self.config.write_out,
             bootstrap_iters=self.config.bootstrap_iters,
+            cache_requests=self.config.cache_requests,
         )

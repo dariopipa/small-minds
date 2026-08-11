@@ -30,3 +30,4 @@ class LLMEvalHarnessConfig(BaseModel):
     log_samples: bool = False
     write_out: bool = False
     bootstrap_iters: int = Field(default=0, ge=0)
+    cache_requests: bool = True
