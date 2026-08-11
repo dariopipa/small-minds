@@ -2,43 +2,18 @@ from collections import Counter
 
 from agents.agent import Agent
 from llm.requests import GenerateRequest
+from prompts import load_prompt
 from strategies.models import StrategyResult
 from strategies.strategy_interface import StrategyI
 
-SOCIETY_OF_MINDS_PROMPT = """
-You are revising a solution to a grade-school math word problem.
 
-Original prompt:
-{question}
-
-Your previous attempt:
-{own_response}
-
-Other agents' previous attempts:
-{other_responses}
-
-Task:
-- Recompute the target problem independently from the original prompt.
-- Check whether your previous attempt made an arithmetic, algebra, or
-  interpretation mistake.
-- Use the other attempts as evidence, but do not copy an answer just because it
-  appears more than once.
-- Do not copy another attempt just because it agrees with yours.
-- Write a concise step-by-step revision.
-- Do not mention agents, votes, debate, or consensus.
-
-End with exactly one final line in this format:
-#### <number>
-
-The final line must be the last line of your response.
-""".strip()
-
-
+# society should be changed into something else like interaction with verification
 class SocietyOfMindsStrategy(StrategyI):
     def __init__(self, agent: Agent, agent_number: int, debate_rounds: int):
         self.agent = agent
         self.agent_number = agent_number
         self.debate_rounds = debate_rounds
+        self.revision_prompt = load_prompt("society_of_minds", "revision")
 
     async def run(self, generation_request: GenerateRequest) -> StrategyResult:
         agent_responses = []
@@ -75,14 +50,14 @@ class SocietyOfMindsStrategy(StrategyI):
                 other_responses = "\n\n".join(
                     other_response.response for other_response in other_agents
                 )
-                debate_prompt = SOCIETY_OF_MINDS_PROMPT.format(
+                debate_prompt = self.revision_prompt.format(
                     question=generation_request.prompt,
                     own_response=own_response.response,
                     other_responses=other_responses,
                 )
 
                 debate_request = generation_request.model_copy(
-                    update={"prompt": debate_prompt}
+                    update={"prompt": debate_prompt, "stop": None}
                 )
                 agent_response = await self.agent.run(debate_request)
                 agent_responses.append(agent_response)
@@ -118,9 +93,11 @@ class SocietyOfMindsStrategy(StrategyI):
 
         return StrategyResult(
             model=selected_response.model,
-            strategy_name="society-of-minds",
+            strategy_name="society_of_minds",
             prompt=generation_request.prompt,
-            response=selected_response.response,
+            response=self.agent.answer_extractor.normalize_final_response(
+                selected_response.response
+            ),
             extracted_response=selected_answer,
             prompt_tokens=sum(
                 agent_response.prompt_tokens for agent_response in agent_responses

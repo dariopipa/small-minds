@@ -21,18 +21,25 @@ class DirectStrategyConfig(BaseModel):
     name: Literal["direct"] = "direct"
 
 
+class RoleBasedSVJStrategyConfig(BaseModel):
+    name: Literal["role_based_svj"] = "role_based_svj"
+
+
 class SelfConsistencyConfig(BaseModel):
-    name: Literal["self-consistency"] = "self-consistency"
+    name: Literal["self_consistency"] = "self_consistency"
     agent_number: PositiveInt
 
 
 class SocietyOfMindsConfig(BaseModel):
-    name: Literal["society-of-minds"] = "society-of-minds"
+    name: Literal["society_of_minds"] = "society_of_minds"
     agent_number: PositiveInt
     debate_rounds: PositiveInt
 
 
 StrategyConfig = Annotated[
-    DirectStrategyConfig | SelfConsistencyConfig | SocietyOfMindsConfig,
+    DirectStrategyConfig
+    | RoleBasedSVJStrategyConfig
+    | SelfConsistencyConfig
+    | SocietyOfMindsConfig,
     Field(discriminator="name"),
 ]

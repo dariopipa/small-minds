@@ -1,0 +1,3 @@
+Return only the single continuation letter: A, B, C, or D.
+The evaluation prompt already ends with "The best answer is", so do not repeat that phrase.
+Do not include parentheses, punctuation, reasoning, or any other text.

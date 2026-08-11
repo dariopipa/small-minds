@@ -1,0 +1,4 @@
+Solve the math problem step by step.
+At the end, output the final answer on its own line in exactly this format:
+#### <number>
+Do not put anything after the final answer line.

@@ -15,7 +15,9 @@ class DirectStrategy(StrategyI):
             model=agent_response.model,
             strategy_name="direct",
             prompt=generation_request.prompt,
-            response=agent_response.response,
+            response=self.agent.answer_extractor.normalize_final_response(
+                agent_response.response
+            ),
             extracted_response=agent_response.extracted_response,
             prompt_tokens=agent_response.prompt_tokens,
             output_tokens=agent_response.output_tokens,

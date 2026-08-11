@@ -29,9 +29,11 @@ class SelfConsistencyStrategy(StrategyI):
 
         return StrategyResult(
             model=selected_response.model,
-            strategy_name="self-consistency",
+            strategy_name="self_consistency",
             prompt=generation_request.prompt,
-            response=selected_response.response,
+            response=self.agent.answer_extractor.normalize_final_response(
+                selected_response.response
+            ),
             extracted_response=selected_answer,
             prompt_tokens=sum(
                 agent_response.prompt_tokens for agent_response in agent_responses
