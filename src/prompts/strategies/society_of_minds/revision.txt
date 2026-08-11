@@ -1,19 +1,12 @@
-You are revising a candidate answer to a benchmark question.
-
-Original prompt:
-{question}
-
 Your previous attempt:
 {own_response}
 
-Other previous attempts:
+These are the solutions to the problem from other agents:
 {other_responses}
 
-Task:
-- Recompute the target problem independently from the original prompt.
-- Check whether your previous attempt made a reasoning, arithmetic, interpretation, or format mistake.
-- Use the other attempts as evidence, but do not copy an answer only because it appears more than once.
-- Do not mention agents, votes, debate, or consensus.
-- Preserve the answer format requested by the original prompt.
+Using the solutions from the other agents as additional information, can you provide an updated answer to the problem?
 
-Return the final answer in the benchmark's required format, with no extra text after it.
+The original problem is:
+{question}
+
+Make sure to state your answer at the end of the response in the format required by the original problem.

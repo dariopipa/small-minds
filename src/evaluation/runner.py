@@ -33,14 +33,17 @@ def run_evaluation(
         config.run.repetitions = repetitions
     if question_limit is not None:
         config.run.questions = question_limit
+
     if not settings.evaluation.log_samples:
         raise ConfigurationError("evaluation.log_samples must be true")
 
     started_at = datetime.now(UTC)
     experiment_id = f"{started_at:%Y-%m-%d_%H%M%SZ}-{uuid.uuid4().hex[:8]}"
+
     output_root = Path(config.run.output_dir)
     if not output_root.is_absolute():
         output_root = PROJECT_ROOT / output_root
+
     output_dir = output_root / experiment_id
     output_dir.mkdir(parents=True)
 
@@ -49,18 +52,22 @@ def run_evaluation(
         {
             "experiment_id": experiment_id,
             "created_at": started_at.isoformat(),
-            "selected_experiments": [item.name for item in experiments],
+            "selected_experiments": [experiment.name for experiment in experiments],
             "configuration": {
                 "application": settings.model_dump(mode="json"),
                 "run": config.run.model_dump(mode="json"),
                 "matrix": config.matrix.model_dump(mode="json"),
                 "strategies": {
-                    item.strategy_name: item.strategy.model_dump(mode="json")
-                    for item in experiments
+                    experiment.strategy_name: experiment.strategy.model_dump(
+                        mode="json"
+                    )
+                    for experiment in experiments
                 },
                 "benchmarks": {
-                    item.benchmark_name: item.benchmark.model_dump(mode="json")
-                    for item in experiments
+                    experiment.benchmark_name: experiment.benchmark.model_dump(
+                        mode="json"
+                    )
+                    for experiment in experiments
                 },
             },
             "cost": None,
@@ -72,6 +79,7 @@ def run_evaluation(
 
     with tempfile.TemporaryDirectory(prefix="master-thesis-") as temp_dir:
         call_log = Path(temp_dir) / "calls.jsonl"
+
         try:
             api_process = _start_api(settings, call_log)
         except Exception as exc:
@@ -88,16 +96,17 @@ def run_evaluation(
         try:
             for experiment in experiments:
                 for repetition in range(1, config.run.repetitions + 1):
-                    status = _run_once(
-                        output_dir,
-                        experiment_id,
-                        experiment,
-                        settings,
-                        config,
-                        repetition,
-                        call_log,
+                    statuses.append(
+                        _run_once(
+                            output_dir=output_dir,
+                            experiment_id=experiment_id,
+                            experiment=experiment,
+                            settings=settings,
+                            config=config,
+                            repetition=repetition,
+                            call_log=call_log,
+                        )
                     )
-                    statuses.append(status)
         finally:
             _stop_api(api_process)
 
@@ -109,6 +118,7 @@ def run_evaluation(
         "completed_with_errors": statuses.count("completed_with_errors"),
         "failed": statuses.count("failed"),
     }
+
     logger.info("Experiment finished: %s", summary)
     return summary
 
@@ -134,8 +144,6 @@ def _run_once(
 
     started_at = datetime.now(UTC)
     timer = time.perf_counter()
-    results: dict[str, Any] | None = None
-    error: dict[str, str] | None = None
 
     logger.info(
         "Running benchmark=%s strategy=%s repetition=%d",
@@ -144,6 +152,9 @@ def _run_once(
         repetition,
     )
 
+    results: dict[str, Any] | None = None
+    error: dict[str, str] | None = None
+
     try:
         evaluation_config = build_llm_eval_config(
             settings,
@@ -151,8 +162,10 @@ def _run_once(
             question_limit=config.run.questions,
         )
         results = LLMEvalHarness(evaluation_config).evaluate()
+
         if not results.get("samples", {}).get(experiment.benchmark.task):
             raise RuntimeError("lm-eval returned no samples")
+
     except Exception as exc:
         logger.exception("Run failed: %s", run_id)
         error = {
@@ -162,32 +175,40 @@ def _run_once(
         }
 
     calls = _read_calls(call_log)
-    samples = (
-        _build_samples(
+
+    if results is not None and error is None:
+        samples = _build_samples(
             experiment,
             results["samples"][experiment.benchmark.task],
             calls,
         )
-        if results is not None and error is None
-        else (
-            [{"record_type": "unscored_calls", "status": "unscored", "calls": calls}]
-            if calls
-            else []
-        )
-    )
+    elif calls:
+        samples = [
+            {
+                "record_type": "unscored_calls",
+                "status": "unscored",
+                "calls": calls,
+            }
+        ]
+    else:
+        samples = []
 
-    error_count = sum(item.get("status") != "completed" for item in samples)
-    status = (
-        "failed"
-        if error is not None
-        else "completed_with_errors"
-        if error_count
-        else "completed"
-    )
+    error_count = sum(sample.get("status") != "completed" for sample in samples)
+
+    if error is not None:
+        status = "failed"
+    elif error_count:
+        status = "completed_with_errors"
+    else:
+        status = "completed"
 
     strategy_results = [call["result"] for call in calls if "result" in call]
-    prompt_tokens = sum(item.get("prompt_tokens", 0) for item in strategy_results)
-    output_tokens = sum(item.get("output_tokens", 0) for item in strategy_results)
+    prompt_tokens = sum(result.get("prompt_tokens", 0) for result in strategy_results)
+    output_tokens = sum(result.get("output_tokens", 0) for result in strategy_results)
+
+    evaluation = None
+    if results:
+        evaluation = {key: value for key, value in results.items() if key != "samples"}
 
     _write_jsonl(run_dir / "samples.jsonl", samples)
     _write_json(
@@ -204,11 +225,11 @@ def _run_once(
             "model": settings.provider.model,
             "seed": experiment.strategy.generation.seed,
             "sample_count": sum(
-                item.get("record_type") == "sample" for item in samples
+                sample.get("record_type") == "sample" for sample in samples
             ),
             "error_count": error_count,
             "model_call_count": sum(
-                len(item.get("agent_responses", [])) for item in strategy_results
+                len(result.get("agent_responses", [])) for result in strategy_results
             ),
             "tokens": {
                 "prompt": prompt_tokens,
@@ -216,18 +237,15 @@ def _run_once(
                 "total": prompt_tokens + output_tokens,
             },
             "model_latency_seconds": sum(
-                item.get("total_latency_s") or 0 for item in strategy_results
+                result.get("total_latency_s") or 0 for result in strategy_results
             ),
             "wall_time_seconds": time.perf_counter() - timer,
             "cost": None,
-            "evaluation": (
-                {key: value for key, value in results.items() if key != "samples"}
-                if results
-                else None
-            ),
+            "evaluation": evaluation,
             "error": error,
         },
     )
+
     return status
 
 
@@ -236,12 +254,13 @@ def _build_samples(
     raw_samples: list[dict[str, Any]],
     calls: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    grouped: dict[str, dict[str, Any]] = {}
+    samples_by_id: dict[str, dict[str, Any]] = {}
+
     for raw in raw_samples:
         sample_id = str(raw.get("doc_id"))
-        sample = grouped.setdefault(
-            sample_id,
-            {
+
+        if sample_id not in samples_by_id:
+            samples_by_id[sample_id] = {
                 "sample_id": raw.get("doc_id"),
                 "question_id": f"{experiment.benchmark_name}:{raw.get('doc_id')}",
                 "document": raw.get("doc"),
@@ -254,45 +273,50 @@ def _build_samples(
                     "target": raw.get("target_hash"),
                 },
                 "evaluations": {},
-            },
-        )
-        sample["evaluations"][raw.get("filter", "none")] = {
+            }
+
+        samples_by_id[sample_id]["evaluations"][raw.get("filter", "none")] = {
             "response": raw.get("filtered_resps"),
             "metrics": {metric: raw.get(metric) for metric in raw.get("metrics", [])},
         }
 
     calls_by_prompt: dict[str, list[dict[str, Any]]] = {}
+    unmatched_calls: list[dict[str, Any]] = []
+
     for call in calls:
         prompt = call.get("prompt")
         if isinstance(prompt, str):
             calls_by_prompt.setdefault(prompt, []).append(call)
+        else:
+            unmatched_calls.append(call)
 
     records: list[dict[str, Any]] = []
-    for sample in grouped.values():
+
+    for sample in samples_by_id.values():
         matching_calls = calls_by_prompt.pop(sample["prompt"], [])
+
         has_result = any("result" in call for call in matching_calls)
         has_error = any("error" in call for call in matching_calls)
+
+        if not has_result:
+            status = "failed"
+        elif has_error:
+            status = "completed_with_retries"
+        else:
+            status = "completed"
+
         records.append(
             {
                 "record_type": "sample",
-                "status": (
-                    "failed"
-                    if not has_result
-                    else "completed_with_retries"
-                    if has_error
-                    else "completed"
-                ),
+                "status": status,
                 **sample,
                 "calls": matching_calls,
             }
         )
 
-    unmatched_calls = [
-        call for call in calls if not isinstance(call.get("prompt"), str)
-    ]
-    unmatched_calls.extend(
-        call for remaining in calls_by_prompt.values() for call in remaining
-    )
+    for remaining_calls in calls_by_prompt.values():
+        unmatched_calls.extend(remaining_calls)
+
     if unmatched_calls:
         records.append(
             {
@@ -301,6 +325,7 @@ def _build_samples(
                 "calls": unmatched_calls,
             }
         )
+
     return records
 
 
@@ -313,6 +338,7 @@ def _first_value(value: Any) -> Any:
 def _read_calls(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
+
     return [
         json.loads(line)
         for line in path.read_text(encoding="utf-8").splitlines()
@@ -326,6 +352,7 @@ def _start_api(
 ) -> subprocess.Popen[bytes]:
     environment = os.environ.copy()
     environment["STRATEGY_RESULTS_PATH"] = str(call_log)
+
     process = subprocess.Popen(
         [
             sys.executable,
@@ -341,20 +368,28 @@ def _start_api(
         env=environment,
     )
 
-    host = "127.0.0.1" if settings.server.host == "0.0.0.0" else settings.server.host
+    host = settings.server.host
+    if host == "0.0.0.0":
+        host = "127.0.0.1"
+
     url = f"http://{host}:{settings.server.port}/openapi.json"
     deadline = time.monotonic() + max(30, settings.evaluation.timeout)
+
     try:
         while time.monotonic() < deadline:
             if process.poll() is not None:
                 raise RuntimeError(f"API exited with code {process.returncode}")
+
             try:
                 if httpx.get(url, timeout=1).is_success:
                     return process
             except httpx.HTTPError:
                 pass
+
             time.sleep(0.25)
+
         raise TimeoutError(f"API did not start before timeout: {url}")
+
     except Exception:
         _stop_api(process)
         raise
@@ -363,7 +398,9 @@ def _start_api(
 def _stop_api(process: subprocess.Popen[bytes]) -> None:
     if process.poll() is not None:
         return
+
     process.terminate()
+
     try:
         process.wait(timeout=10)
     except subprocess.TimeoutExpired:
@@ -373,7 +410,13 @@ def _stop_api(process: subprocess.Popen[bytes]) -> None:
 
 def _write_json(path: Path, value: Any) -> None:
     with path.open("w", encoding="utf-8") as output:
-        json.dump(value, output, indent=2, ensure_ascii=False, default=_json_default)
+        json.dump(
+            value,
+            output,
+            indent=2,
+            ensure_ascii=False,
+            default=_json_default,
+        )
         output.write("\n")
 
 
@@ -381,7 +424,12 @@ def _write_jsonl(path: Path, values: list[dict[str, Any]]) -> None:
     with path.open("w", encoding="utf-8") as output:
         for value in values:
             output.write(
-                json.dumps(value, ensure_ascii=False, default=_json_default) + "\n"
+                json.dumps(
+                    value,
+                    ensure_ascii=False,
+                    default=_json_default,
+                )
+                + "\n"
             )
 
 

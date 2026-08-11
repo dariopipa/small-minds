@@ -20,6 +20,7 @@ strategies:
     generation:
       temperature: 0.5
       top_p: 0.9
+    num_fewshot: 0
     params:
       agent_number: 3
       debate_rounds: 2

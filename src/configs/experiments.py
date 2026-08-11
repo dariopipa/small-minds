@@ -70,6 +70,7 @@ class Generation(ConfigModel):
 
 class Strategy(ConfigModel):
     generation: Generation = Field(default_factory=Generation)
+    num_fewshot: int | None = Field(default=None, ge=0)
     params: dict[str, int | str | float | bool | None] = Field(default_factory=dict)
 
 

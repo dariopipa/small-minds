@@ -75,6 +75,11 @@ def build_llm_eval_config(
     experiment: Experiment,
     question_limit: int,
 ) -> LLMEvalHarnessConfig:
+    num_fewshot = (
+        experiment.strategy.num_fewshot
+        if experiment.strategy.num_fewshot is not None
+        else experiment.benchmark.num_fewshot
+    )
     system_instruction = (
         read_prompt(SOURCE_DIR / experiment.benchmark.prompt)
         if experiment.benchmark.prompt
@@ -97,7 +102,7 @@ def build_llm_eval_config(
         ),
         system_instruction=system_instruction,
         tasks=[experiment.benchmark.task],
-        num_fewshot=experiment.benchmark.num_fewshot,
+        num_fewshot=num_fewshot,
         batch_size=settings.evaluation.batch_size,
         limit=question_limit,
         log_samples=settings.evaluation.log_samples,

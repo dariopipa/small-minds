@@ -1,0 +1,13 @@
+{
+  "qwen2.5:3b": {
+    "gsm8k": {
+      "model": "Qwen2.5-3B-Instruct",
+      "benchmark": "GSM8K",
+      "score": 0.867,
+      "metric": "accuracy",
+      "source": "https://github.com/QwenLM/Qwen2.5-Omni#performance",
+      "model_identity_source": "https://github.com/QwenLM/Qwen3/blob/main/docs/source/run_locally/ollama.md",
+      "evaluation_notes": "Official reference — different evaluation protocol may apply. The published table does not establish the same few-shot prompt, strict answer filter, generation settings, or Ollama quantization used by this experiment."
+    }
+  }
+}

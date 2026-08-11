@@ -27,7 +27,10 @@ class SocietyOfMindsStrategy(Strategy):
             agent_responses.append(agent_response)
             current_responses.append(agent_response)
 
-        for _ in range(self.debate_rounds):
+        # The reference implementation counts the independent generation as
+        # round one. Later rounds update each answer using the other agents'
+        # responses from the preceding round.
+        for _ in range(1, self.debate_rounds):
             previous_responses = current_responses
             current_responses = []
 
