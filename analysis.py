@@ -21,8 +21,9 @@ PRIMARY_FILTERS = {
 }
 PRIMARY_METRICS = {
     "gsm8k": "exact_match",
-    "arc_challenge_chat": "acc_norm",
+    "arc_challenge_chat": "exact_match",
 }
+FLEXIBLE_FILTERS = {"gsm8k": "flexible-extract"}
 STRATEGY_LABELS = {
     "direct": "Direct",
     "self_consistency": "Self-Consistency",
@@ -45,6 +46,7 @@ class Sample:
     question_id: str
     outcome: str
     metric: float
+    flexible_metric: float | None
     latency: float | None
 
 
@@ -77,6 +79,13 @@ class Run:
             return statistics.fmean(sample.metric for sample in self.samples)
         return self.saved_score
 
+    @property
+    def flexible_score(self) -> float | None:
+        scores = [sample.flexible_metric for sample in self.samples]
+        if not scores or any(score is None for score in scores):
+            return None
+        return statistics.fmean(score for score in scores if score is not None)
+
 
 @dataclass(slots=True)
 class Group:
@@ -91,6 +100,7 @@ class Group:
     failed: int
     unparseable: int
     mean: float | None
+    flexible_mean: float | None
     std: float | None
     minimum: float | None
     maximum: float | None
@@ -185,6 +195,21 @@ def metric_spec(benchmark: str) -> tuple[str, str]:
         ) from exc
 
 
+def flexible_metric(
+    evaluations: dict[str, Any], benchmark: str, where: str
+) -> float | None:
+    filter_name = FLEXIBLE_FILTERS.get(benchmark)
+    if filter_name is None:
+        return None
+    evaluation = evaluations.get(filter_name)
+    if not isinstance(evaluation, dict):
+        return None
+    metrics = evaluation.get("metrics")
+    if not isinstance(metrics, dict):
+        return None
+    return read_number(metrics, "exact_match", where, required_field=False)
+
+
 def parse_outcome(status: str, metric: float, filtered_response: Any) -> str:
     if status == "failed":
         return "failed"
@@ -238,6 +263,7 @@ def parse_v1_sample(
         question_id=question_id,
         outcome=parse_outcome(status, metric, filtered_response),
         metric=metric,
+        flexible_metric=flexible_metric(correctness, benchmark, where),
         latency=read_number(record, "latency_seconds", where, required_field=False),
     )
 
@@ -273,6 +299,7 @@ def parse_runner_sample(record: dict[str, Any], benchmark: str, where: str) -> S
         question_id=question_id,
         outcome=parse_outcome(status, metric, evaluation.get("response")),
         metric=metric,
+        flexible_metric=flexible_metric(evaluations, benchmark, where),
         latency=latency,
     )
 
@@ -502,6 +529,9 @@ def calculate_statistics(runs: list[Run], warnings: list[str]) -> list[Group]:
         group_runs.sort(key=lambda run: run.repetition)
         observations = sum(len(run.samples) for run in group_runs)
         scores = [run.score for run in group_runs if run.score is not None]
+        flexible_scores = [
+            run.flexible_score for run in group_runs if run.flexible_score is not None
+        ]
         partial_fields: list[str] = []
 
         def aggregate(field: str) -> tuple[int | float | None, float | None]:
@@ -563,6 +593,9 @@ def calculate_statistics(runs: list[Run], warnings: list[str]) -> list[Group]:
                 failed=counts["failed"],
                 unparseable=counts["unparseable"],
                 mean=statistics.fmean(scores) if scores else None,
+                flexible_mean=(
+                    statistics.fmean(flexible_scores) if flexible_scores else None
+                ),
                 std=statistics.pstdev(scores) if scores else None,
                 minimum=min(scores) if scores else None,
                 maximum=max(scores) if scores else None,
@@ -824,6 +857,7 @@ def render_benchmark_section(
                 fmt_number(group.incorrect),
                 fmt_number(group.failed + group.unparseable),
                 fmt_percent(group.mean),
+                fmt_percent(group.flexible_mean),
                 fmt_pp(comparison.gain if comparison else None),
             ]
         )
@@ -833,7 +867,12 @@ def render_benchmark_section(
                 ", ".join(
                     f"R{run.repetition}: {fmt_percent(run.score)}" for run in group.runs
                 ),
+                ", ".join(
+                    f"R{run.repetition}: {fmt_percent(run.flexible_score)}"
+                    for run in group.runs
+                ),
                 fmt_percent(group.mean),
+                fmt_percent(group.flexible_mean),
                 fmt_percent(group.std),
                 fmt_percent(group.minimum),
                 fmt_percent(group.maximum),
@@ -905,12 +944,22 @@ def render_benchmark_section(
             "Incorrect",
             "Failed / unparseable",
             "Mean accuracy",
+            "Flexible accuracy (diagnostic)",
             "Δ vs Direct",
         ],
         performance_rows,
     )
     repetition_table = render_table(
-        ["Strategy", "Score per repetition", "Mean", "Population std", "Min", "Max"],
+        [
+            "Strategy",
+            "Strict score per repetition",
+            "Flexible score per repetition (diagnostic)",
+            "Strict mean",
+            "Flexible mean (diagnostic)",
+            "Population std",
+            "Min",
+            "Max",
+        ],
         repetition_rows,
     )
     question_table = (
@@ -964,6 +1013,12 @@ def render_benchmark_section(
         benchmark=escape(benchmark),
         metric_name=escape(metric_name),
         filter_name=escape(filter_name),
+        flexible_note=(
+            "GSM8K also shows flexible extraction as a diagnostic; the strict "
+            "saved metric remains the primary result."
+            if benchmark in FLEXIBLE_FILTERS
+            else ""
+        ),
         accuracy_bars=render_bars(groups),
         reference=render_reference(reference),
         performance_table=performance_table,
@@ -1013,6 +1068,7 @@ def render_report(
                     escape(benchmark),
                     escape(group.label),
                     fmt_percent(group.mean),
+                    fmt_percent(group.flexible_mean),
                     fmt_pp(comparison.gain if comparison else None),
                     fmt_seconds(group.wall_time),
                     fmt_number(group.calls),
@@ -1031,6 +1087,7 @@ def render_report(
             "Benchmark",
             "Strategy",
             "Mean accuracy",
+            "Flexible accuracy (diagnostic)",
             "Δ vs Direct",
             "Total wall time",
             "Model calls",
@@ -1150,6 +1207,7 @@ def export_group(group: Group) -> dict[str, Any]:
             "failed": run.counts["failed"],
             "unparseable": run.counts["unparseable"],
             "score": run.score,
+            "flexible_score": run.flexible_score,
             "calls": run.calls,
             "prompt_tokens": run.prompt_tokens,
             "output_tokens": run.output_tokens,

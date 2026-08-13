@@ -20,3 +20,10 @@ class ARCChallengeChatAnswerExtractor(AnswerExtractor):
 
     def normalize_final_response(self, text: str) -> str:
         return self.extract(text) or text
+
+    def prepare_prompt(self, prompt: str) -> str:
+        reminder = "Final answer reminder: return only one letter: A, B, C, or D."
+        answer_cue = "The best answer is"
+        if prompt.rstrip().endswith(answer_cue):
+            return f"{prompt.rstrip()[: -len(answer_cue)]}{reminder}\n{answer_cue}"
+        return f"{prompt}\n\n{reminder}"

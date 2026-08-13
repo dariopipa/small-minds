@@ -21,3 +21,13 @@ class GSM8KAnswerExtractor(AnswerExtractor):
             return None
 
         return normalize_number(matches[-1])
+
+    def prepare_prompt(self, prompt: str) -> str:
+        reminder = (
+            "Final answer reminder: after your reasoning, end with exactly "
+            "`#### <number>` on its own line. Do not use \\boxed{} and do not "
+            "write anything after that line."
+        )
+        if prompt.rstrip().endswith("Answer:"):
+            return f"{prompt.rstrip()[: -len('Answer:')]}{reminder}\nAnswer:"
+        return f"{prompt}\n\n{reminder}"

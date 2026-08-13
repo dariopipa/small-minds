@@ -8,3 +8,6 @@ class AnswerExtractor(ABC):
 
     def normalize_final_response(self, text: str) -> str:
         return text
+
+    def prepare_prompt(self, prompt: str) -> str:
+        return prompt

@@ -13,8 +13,9 @@ strategies:
     generation:
       temperature: 0.5
       top_p: 0.9
+    num_fewshot: 5
     params:
-      agent_number: 3
+      agent_number: 6
 
   society_of_minds:
     generation:

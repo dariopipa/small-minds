@@ -37,10 +37,9 @@ class Agent:
     def _build_generation_request(
         self, generation_request: GenerateRequest
     ) -> GenerateRequest:
+        prompt = self.answer_extractor.prepare_prompt(generation_request.prompt)
         if self.agent_config.system_prompt is None:
-            return generation_request
+            return generation_request.model_copy(update={"prompt": prompt})
 
-        prompt = (
-            f"{self.agent_config.system_prompt}\n\nTask:\n{generation_request.prompt}"
-        )
+        prompt = f"{self.agent_config.system_prompt}\n\nTask:\n{prompt}"
         return generation_request.model_copy(update={"prompt": prompt})

@@ -10,31 +10,12 @@ class RoleBasedSVJStrategy(Strategy):
         self.solver = solver
         self.verifier = verifier
         self.judge = judge
-        self.solver_prompt = load_prompt("strategies", "role_based_svj", "solver")
-        self.verifier_prompt = load_prompt("strategies", "role_based_svj", "verifier")
         self.judge_prompt = load_prompt("strategies", "role_based_svj", "judge")
 
     async def run(self, generation_request: GenerateRequest) -> StrategyResult:
         question = generation_request.prompt
-        solver_response = await self.solver.run(
-            generation_request.model_copy(
-                update={
-                    "prompt": self.solver_prompt.format(question=question),
-                    "stop": None,
-                }
-            )
-        )
-        verifier_response = await self.verifier.run(
-            generation_request.model_copy(
-                update={
-                    "prompt": self.verifier_prompt.format(
-                        question=question,
-                        solver_output=solver_response.response,
-                    ),
-                    "stop": None,
-                }
-            )
-        )
+        solver_response = await self.solver.run(generation_request)
+        verifier_response = await self.verifier.run(generation_request)
         judge_response = await self.judge.run(
             generation_request.model_copy(
                 update={
@@ -42,7 +23,8 @@ class RoleBasedSVJStrategy(Strategy):
                         question=question,
                         solver_output=solver_response.response,
                         verifier_output=verifier_response.response,
-                    )
+                    ),
+                    "stop": None,
                 }
             )
         )

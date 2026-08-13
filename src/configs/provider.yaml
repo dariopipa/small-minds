@@ -2,13 +2,13 @@ provider:
   name: ollama
   model: qwen2.5:3b
   context_window: 8192
-  max_output_tokens: 512
+  max_output_tokens: 1024
   keep_alive: 60m
 
 evaluation:
   backend: local-completions
   batch_size: 1
-  concurrency: 1
+  concurrency: 4
   timeout: 180
   log_samples: true
   write_out: false

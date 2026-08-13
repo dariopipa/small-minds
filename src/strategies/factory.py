@@ -30,7 +30,7 @@ class StrategyFactory:
                     ),
                     verifier=agent_factory.create(
                         name="role_based_svj_verifier",
-                        role="verifier",
+                        role="independent_verifier",
                     ),
                     judge=agent_factory.create(
                         name="role_based_svj_judge",
