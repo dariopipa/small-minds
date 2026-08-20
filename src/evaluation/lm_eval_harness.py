@@ -19,7 +19,7 @@ class LLMEvalHarness(Evaluator):
             num_fewshot=self.config.num_fewshot,
             batch_size=self.config.batch_size,
             limit=self.config.limit,
-            log_samples=self.config.log_samples,
+            log_samples=True,
             write_out=self.config.write_out,
             bootstrap_iters=self.config.bootstrap_iters,
             cache_requests=self.config.cache_requests,

@@ -11,13 +11,13 @@ from common.exceptions import (
     ModelNotFoundException,
 )
 from common.logging_config import configure_logging
-from configs.context import (
-    build_ollama_config,
+from configs.config_loader import (
     build_strategy_config,
     load_experiments,
 )
 from extractors.factory import create_extractor
 from llm.factory import LLMClientFactory
+from llm.ollama.config import build_ollama_config
 from strategies.base import Strategy
 from strategies.factory import StrategyFactory
 

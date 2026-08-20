@@ -44,9 +44,6 @@ class SocietyOfMindsStrategy(Strategy):
                     for index in range(len(previous_responses))
                     if index != agent_index
                 ]
-                if other_indices:
-                    rotation = (agent_index + round_index) % len(other_indices)
-                    other_indices = other_indices[rotation:] + other_indices[:rotation]
                 other_responses = "\n\n".join(
                     f"Candidate {candidate_index + 1}:\n"
                     f"{previous_responses[other_index].response}"

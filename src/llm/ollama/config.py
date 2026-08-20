@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from configs.experiments import ApplicationSettings, Experiment
+
 
 class OllamaConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -43,3 +45,23 @@ class OllamaProviderConfig(BaseModel):
     model_name: str
     options: OllamaModelOptions = Field(default_factory=OllamaModelOptions)
     config: OllamaConfig = Field(default_factory=OllamaConfig)
+
+
+def build_ollama_config(
+    settings: ApplicationSettings,
+    experiment: Experiment,
+) -> OllamaProviderConfig:
+    return OllamaProviderConfig(
+        provider=settings.provider.name,
+        model_name=settings.provider.model,
+        options=OllamaModelOptions(
+            num_ctx=settings.provider.context_window,
+            num_predict=settings.provider.max_output_tokens,
+            **experiment.strategy.generation.model_dump(exclude_none=True),
+        ),
+        config=OllamaConfig(
+            stream=False,
+            think=False,
+            keep_alive=settings.provider.keep_alive,
+        ),
+    )

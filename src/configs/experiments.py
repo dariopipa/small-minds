@@ -1,7 +1,7 @@
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, TypeVar
+from typing import Literal, TypeVar
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt, ValidationError
@@ -28,7 +28,6 @@ class EvaluationSettings(ConfigModel):
     batch_size: int | str = 1
     concurrency: PositiveInt = 1
     timeout: PositiveInt = 180
-    log_samples: bool = False
     write_out: bool = False
     bootstrap_iters: int = Field(default=0, ge=0)
 
@@ -99,60 +98,29 @@ class Experiment:
 
 def load_config(path: Path, model: type[T]) -> T:
     try:
-        return model.model_validate(load_yaml(path))
-    except ValidationError as exc:
-        raise ConfigurationError(
-            f"Invalid {model.__name__} configuration in {path}:\n{exc}"
-        ) from exc
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if data is None:
+            raise ConfigurationError(f"Configuration file is empty: {path}")
+        return model.model_validate(data)
+    except (OSError, yaml.YAMLError, ValidationError) as exc:
+        raise ConfigurationError(f"Invalid configuration in {path}: {exc}") from exc
 
 
-def load_yaml(path: Path) -> Any:
-    try:
-        with path.open(encoding="utf-8") as source:
-            data = yaml.safe_load(source)
-    except FileNotFoundError as exc:
-        raise ConfigurationError(f"Configuration file does not exist: {path}") from exc
-    except OSError as exc:
-        raise ConfigurationError(
-            f"Could not read configuration file {path}: {exc}"
-        ) from exc
-    except yaml.YAMLError as exc:
-        raise ConfigurationError(f"Invalid YAML in configuration file: {path}") from exc
+def validate_matrix(names: list[str], available: dict, kind: str) -> None:
+    if len(names) != len(set(names)):
+        raise ConfigurationError(f"Duplicate {kind}s in the experiment matrix.")
 
-    if data is None:
-        raise ConfigurationError(f"Configuration file is empty: {path}")
-
-    return data
-
-
-def validate_config(experiment: ExperimentConfig, benchmarks: BenchmarkConfig) -> None:
-    validate_names(experiment.matrix.benchmarks, benchmarks.benchmarks, "benchmark")
-    validate_names(experiment.matrix.strategies, experiment.strategies, "strategy")
-
-
-def validate_names(
-    selected: list[str], available: Mapping[str, object], kind: str
-) -> None:
-    duplicates = find_duplicates(selected)
-    if duplicates:
-        raise ConfigurationError(
-            f"Duplicate {kind} matrix entries: " + ", ".join(duplicates)
-        )
-
-    missing = sorted(set(selected) - set(available))
-    if missing:
-        available_names = "\n".join(f"  {name}" for name in sorted(available))
-        raise ConfigurationError(
-            f"Unknown {kind}s in experiment matrix: {', '.join(missing)}"
-            f"\n\nAvailable {kind}s:\n{available_names}"
-        )
+    unknown = [name for name in names if name not in available]
+    if unknown:
+        raise ConfigurationError(f"Unknown {kind}s: {', '.join(unknown)}")
 
 
 def iter_experiments(
     experiment: ExperimentConfig,
     benchmarks: BenchmarkConfig,
 ) -> Iterator[Experiment]:
-    validate_config(experiment, benchmarks)
+    validate_matrix(experiment.matrix.benchmarks, benchmarks.benchmarks, "benchmark")
+    validate_matrix(experiment.matrix.strategies, experiment.strategies, "strategy")
 
     for benchmark_name in experiment.matrix.benchmarks:
         benchmark = benchmarks.benchmarks[benchmark_name]
@@ -163,34 +131,3 @@ def iter_experiments(
                 strategy_name=strategy_name,
                 strategy=experiment.strategies[strategy_name],
             )
-
-
-def resolve_experiment(
-    experiment: ExperimentConfig,
-    benchmarks: BenchmarkConfig,
-    experiment_name: str | None,
-) -> Experiment:
-    experiments = iter_experiments(experiment, benchmarks)
-    if experiment_name is None:
-        return next(experiments)
-
-    available: list[str] = []
-    for item in experiments:
-        if item.name == experiment_name:
-            return item
-        available.append(item.name)
-
-    raise ConfigurationError(
-        f"Experiment is not defined: {experiment_name}. "
-        f"Available experiments: {', '.join(available)}"
-    )
-
-
-def find_duplicates(values: list[str]) -> list[str]:
-    seen: set[str] = set()
-    repeated: set[str] = set()
-    for value in values:
-        if value in seen:
-            repeated.add(value)
-        seen.add(value)
-    return sorted(repeated)

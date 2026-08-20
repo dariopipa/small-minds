@@ -4,9 +4,9 @@ import os
 import time
 import uuid
 from pathlib import Path
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 
 from api.requests.completion import CompletionRequest
 from api.responses.completion import (
@@ -16,97 +16,97 @@ from api.responses.completion import (
 )
 from llm.requests import GenerateRequest
 from strategies.base import Strategy
+from strategies.models import StrategyResult
 
 logger = logging.getLogger(__name__)
 
 routes = APIRouter()
+results_path = os.getenv("STRATEGY_RESULTS_PATH")
+RESULTS_PATH = Path(results_path) if results_path else None
 
 
-def get_strategy(request: Request) -> Strategy:
-    experiment_name = request.query_params.get(
-        "experiment", request.app.state.default_experiment
-    )
-    strategy = request.app.state.strategies.get(experiment_name)
+class CompletionRecord(BaseModel):
+    id: str = Field(default_factory=lambda: f"cmpl-{uuid.uuid4().hex}")
+    created: int = Field(default_factory=lambda: int(time.time()))
+    prompt: str
+    result: StrategyResult | None = None
+    error: str | None = None
+
+
+def get_strategy(request: Request, experiment_name: str | None) -> Strategy:
+    name = experiment_name or request.app.state.default_experiment
+    strategy = request.app.state.strategies.get(name)
+
     if strategy is None:
         available = ", ".join(request.app.state.strategies)
         raise HTTPException(
             status_code=400,
-            detail=(
-                f"Unknown experiment '{experiment_name}'. "
-                f"Available experiments: {available}"
-            ),
+            detail=(f"Unknown experiment '{name}'. Available experiments: {available}"),
         )
+
     return strategy
 
 
-def save_call(record: dict) -> None:
-    path = os.getenv("STRATEGY_RESULTS_PATH")
-    if path is None:
-        return
+def save_record(
+    prompt: str,
+    result: StrategyResult | None = None,
+    error: str | None = None,
+) -> CompletionRecord:
+    record = CompletionRecord(prompt=prompt, result=result, error=error)
 
-    output_path = Path(path)
-    try:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        with output_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
-    except OSError as exc:
-        raise RuntimeError(
-            f"Could not write strategy result to {output_path}. "
-            "Check STRATEGY_RESULTS_PATH."
-        ) from exc
+    if RESULTS_PATH is not None:
+        with RESULTS_PATH.open("a", encoding="utf-8") as f:
+            f.write(
+                json.dumps(
+                    record.model_dump(mode="json", exclude_none=True),
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+
+    return record
 
 
 @routes.post("/v1/completions")
 async def completions(
     completion_request: CompletionRequest,
-    strategy: Annotated[Strategy, Depends(get_strategy)],
+    request: Request,
+    experiment: str | None = Query(default=None),
+    repetition: int = Query(default=1, ge=1),
 ) -> CompletionResponse:
+    strategy = get_strategy(request, experiment)
 
-    completion_id = f"cmpl-{uuid.uuid4().hex}"
-    created = int(time.time())
-    generation_request = GenerateRequest(
-        prompt=completion_request.prompt,
-        stop=completion_request.stop,
-    )
     try:
-        result = await strategy.run(generation_request=generation_request)
+        result = await strategy.run(
+            GenerateRequest(
+                prompt=completion_request.prompt,
+                stop=completion_request.stop,
+                repetition=repetition,
+            )
+        )
     except Exception as exc:
-        try:
-            save_call(
-                {
-                    "created": created,
-                    "prompt": completion_request.prompt,
-                    "error": {
-                        "type": type(exc).__name__,
-                        "message": str(exc),
-                    },
-                }
-            )
-        except Exception:
-            logger.exception(
-                "Could not persist failed completion: id=%s", completion_id
-            )
+        save_record(completion_request.prompt, error=str(exc))
         raise
+
+    record = save_record(
+        completion_request.prompt,
+        result=result,
+    )
+
+    total_tokens = result.prompt_tokens + result.output_tokens
 
     logger.info(
         "Completion finished: id=%s strategy=%s model=%s calls=%d tokens=%d",
-        completion_id,
+        record.id,
         result.strategy_name,
         result.model,
         len(result.agent_responses),
-        result.prompt_tokens + result.output_tokens,
-    )
-    save_call(
-        {
-            "created": created,
-            "prompt": completion_request.prompt,
-            "result": result.model_dump(mode="json"),
-        }
+        total_tokens,
     )
 
-    response = CompletionResponse(
-        id=completion_id,
-        created=created,
+    return CompletionResponse(
+        id=record.id,
+        created=record.created,
         model=str(result.model),
         choices=[
             CompletionChoice(
@@ -119,8 +119,6 @@ async def completions(
         usage=CompletionUsage(
             prompt_tokens=result.prompt_tokens,
             completion_tokens=result.output_tokens,
-            total_tokens=result.prompt_tokens + result.output_tokens,
+            total_tokens=total_tokens,
         ),
     )
-
-    return response
