@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 async def build_strategies() -> dict[str, Strategy]:
     settings, _, experiments = load_experiments()
     strategies: dict[str, Strategy] = {}
+    # The provider model is shared by every configured experiment.
+    model_warmed = False
 
     for experiment in experiments:
         provider_config = build_ollama_config(settings, experiment)
@@ -41,14 +43,17 @@ async def build_strategies() -> dict[str, Strategy]:
         )
 
         llm_client = LLMClientFactory.create(provider_config)
-        if not strategies:
+        if not model_warmed:
             await llm_client.ensure_model_ready()
+            model_warmed = True
 
         strategies[experiment.name] = StrategyFactory.create_strategy(
             strategy_config=strategy_config,
             agent_factory=AgentFactory(
                 llm_client=llm_client,
                 answer_extractor=create_extractor(experiment.benchmark.task),
+                base_seed=provider_config.options.seed,
+                base_temperature=provider_config.options.temperature,
             ),
         )
 

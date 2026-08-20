@@ -1,6 +1,7 @@
 import argparse
 import logging
 import sys
+from pathlib import Path
 
 from api.app import create_app
 from common.exceptions import (
@@ -20,6 +21,15 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the configured experiments")
     parser.add_argument("--repetitions", type=int)
     parser.add_argument("--limit", type=int)
+    parser.add_argument(
+        "--benchmark",
+        help="Run every configured strategy for one benchmark",
+    )
+    parser.add_argument(
+        "--experiment-dir",
+        type=Path,
+        help="Create or continue an experiment in this directory",
+    )
 
     args = parser.parse_args()
 
@@ -40,6 +50,8 @@ def main() -> None:
         run_evaluation(
             repetitions=args.repetitions,
             question_limit=args.limit,
+            benchmark=args.benchmark,
+            experiment_dir=args.experiment_dir,
         )
     except KeyboardInterrupt:
         sys.exit(1)

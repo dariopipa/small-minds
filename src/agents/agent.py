@@ -1,5 +1,6 @@
 from agents.models import AgentConfig, AgentResponse
 from common.latency_measure import Timer
+from common.seeding import derive_seed
 from extractors.base import AnswerExtractor
 from llm.base import LLMClient
 from llm.requests import GenerateRequest
@@ -16,8 +17,12 @@ class Agent:
         self.answer_extractor = answer_extractor
         self.agent_config = agent_config
 
-    async def run(self, generation_request: GenerateRequest) -> AgentResponse:
-        request = self._build_generation_request(generation_request)
+    async def run(
+        self,
+        generation_request: GenerateRequest,
+        seed_key: str,
+    ) -> AgentResponse:
+        request = self._build_generation_request(generation_request, seed_key)
 
         with Timer() as t:
             llm_response = await self.llm_client.generate(generation_request=request)
@@ -31,15 +36,37 @@ class Agent:
             model=llm_response.model,
             prompt_tokens=llm_response.prompt_tokens,
             output_tokens=llm_response.output_tokens,
+            seed=request.seed,
+            temperature=request.temperature,
             latency_s=t.elapsed,
         )
 
     def _build_generation_request(
-        self, generation_request: GenerateRequest
+        self,
+        generation_request: GenerateRequest,
+        seed_key: str,
     ) -> GenerateRequest:
         prompt = self.answer_extractor.prepare_prompt(generation_request.prompt)
-        if self.agent_config.system_prompt is None:
-            return generation_request.model_copy(update={"prompt": prompt})
+        if self.agent_config.system_prompt is not None:
+            prompt = f"{self.agent_config.system_prompt}\n\nTask:\n{prompt}"
 
-        prompt = f"{self.agent_config.system_prompt}\n\nTask:\n{prompt}"
-        return generation_request.model_copy(update={"prompt": prompt})
+        seed = generation_request.seed
+        if seed is None and self.agent_config.base_seed is not None:
+            seed = derive_seed(
+                self.agent_config.base_seed,
+                generation_request.repetition,
+                seed_key,
+            )
+
+        temperature = generation_request.temperature
+        if temperature is None:
+            temperature = self.agent_config.base_temperature
+
+        return generation_request.model_copy(
+            update={
+                "prompt": prompt,
+                "stop": self.answer_extractor.prepare_stop(generation_request.stop),
+                "seed": seed,
+                "temperature": temperature,
+            }
+        )
