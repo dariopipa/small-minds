@@ -1,6 +1,6 @@
 run:
-  questions: 100
-  repetitions: 1
+  questions: 500
+  repetitions: 2
   output_dir: results
 
 strategies:
@@ -11,17 +11,17 @@ strategies:
 
   self_consistency:
     generation:
+      seed: 42
       temperature: 0.5
       top_p: 0.9
-    num_fewshot: 5
     params:
       agent_number: 6
 
   society_of_minds:
     generation:
+      seed: 42
       temperature: 0.5
       top_p: 0.9
-    num_fewshot: 0
     params:
       agent_number: 3
       debate_rounds: 2
@@ -29,12 +29,14 @@ strategies:
   role_based_svj:
     generation:
       seed: 42
-      temperature: 0
+      temperature: 0.5
+      top_p: 0.9
 
 matrix:
   benchmarks:
     - gsm8k
     - arc_challenge_chat
+    - boolq
   strategies:
     - direct
     - self_consistency

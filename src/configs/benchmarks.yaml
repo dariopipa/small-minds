@@ -30,4 +30,15 @@ benchmarks:
   arc_challenge_chat:
     task: arc_challenge_chat
     prompt: prompts/benchmarks/arc_challenge_chat/system.txt
-    num_fewshot: 5
+    # lm-eval's chat variant is defined as zero-shot and rejects overrides.
+    num_fewshot: 0
+
+  # lm-evaluation-harness task:
+  # https://github.com/EleutherAI/lm-evaluation-harness/blob/main/lm_eval/tasks/super_glue/boolq/seq2seq.yaml
+  #
+  # Original benchmark:
+  # https://github.com/google-research-datasets/boolean-questions
+  boolq:
+    task: boolq-seq2seq
+    prompt: prompts/benchmarks/boolq/system.txt
+    num_fewshot: 0

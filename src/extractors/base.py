@@ -11,3 +11,6 @@ class AnswerExtractor(ABC):
 
     def prepare_prompt(self, prompt: str) -> str:
         return prompt
+
+    def prepare_stop(self, stop: list[str] | None) -> list[str] | None:
+        return stop

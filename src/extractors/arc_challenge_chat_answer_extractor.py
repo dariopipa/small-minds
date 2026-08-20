@@ -2,28 +2,33 @@ import re
 
 from extractors.base import AnswerExtractor
 
+FINAL_ANSWER_PATTERN = re.compile(
+    r"^final answer:\s*([ABCD])\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
 
 class ARCChallengeChatAnswerExtractor(AnswerExtractor):
     def extract(self, text: str) -> str | None:
-        stripped = text.strip()
-        single_letter = re.fullmatch(r"\(?([ABCD])\)?[.!]?", stripped, re.IGNORECASE)
-        if single_letter:
-            return single_letter.group(1).upper()
-
-        labeled_answers = re.findall(
-            r"(?:the\s+best\s+answer\s+is|final[_\s]+answer|answer)"
-            r"\s*[:=-]?\s*\(?([ABCD])\)?\b",
-            stripped,
-            re.IGNORECASE,
-        )
-        return labeled_answers[-1].upper() if labeled_answers else None
+        answers = FINAL_ANSWER_PATTERN.findall(text)
+        return answers[-1].upper() if answers else None
 
     def normalize_final_response(self, text: str) -> str:
-        return self.extract(text) or text
+        return self.extract(text) or ""
+
+    def prepare_stop(self, stop: list[str] | None) -> list[str] | None:
+        # lm-eval's letter-only ARC task stops at punctuation/blank lines. Those
+        # stops would cut off our internal rationale before its final answer.
+        remaining = [value for value in stop or [] if value not in {".", "\n\n"}]
+        return remaining or None
 
     def prepare_prompt(self, prompt: str) -> str:
-        reminder = "Final answer reminder: return only one letter: A, B, C, or D."
+        reminder = (
+            "Reason concisely, check the strongest competing option, then end with "
+            "`Final answer: <A, B, C, or D>` on its own line. Do not write "
+            "anything after that line."
+        )
         answer_cue = "The best answer is"
         if prompt.rstrip().endswith(answer_cue):
-            return f"{prompt.rstrip()[: -len(answer_cue)]}{reminder}\n{answer_cue}"
+            prompt = prompt.rstrip()[: -len(answer_cue)].rstrip()
         return f"{prompt}\n\n{reminder}"

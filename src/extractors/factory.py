@@ -3,6 +3,7 @@ from extractors.arc_challenge_chat_answer_extractor import (
     ARCChallengeChatAnswerExtractor,
 )
 from extractors.base import AnswerExtractor
+from extractors.boolq_answer_extractor import BoolQAnswerExtractor
 from extractors.gsm8k_answer_extractor import GSM8KAnswerExtractor
 
 
@@ -12,6 +13,8 @@ def create_extractor(name: str) -> AnswerExtractor:
             return GSM8KAnswerExtractor()
         case "arc_challenge_chat":
             return ARCChallengeChatAnswerExtractor()
+        case "boolq-seq2seq":
+            return BoolQAnswerExtractor()
         case _:
             raise ConfigurationError(
                 f"Unsupported answer extractor for task '{name}'. "
