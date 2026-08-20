@@ -9,7 +9,7 @@ class DirectStrategy(Strategy):
         self.agent = agent
 
     async def run(self, generation_request: GenerateRequest) -> StrategyResult:
-        agent_response = await self.agent.run(generation_request)
+        agent_response = await self.agent.run(generation_request, seed_key="solver")
 
         return StrategyResult(
             model=agent_response.model,

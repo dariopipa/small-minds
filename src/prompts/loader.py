@@ -1,24 +1,17 @@
 from pathlib import Path
 
-from common.exceptions import ConfigurationError
-
 PROMPT_ROOT = Path(__file__).resolve().parent
 
 
-def read_prompt(path: Path) -> str:
-    if not path.is_file():
-        raise ConfigurationError(f"Prompt file does not exist: {path}")
+def load_prompt(path: str | Path) -> str:
+    path = Path(path)
 
-    try:
-        prompt = path.read_text(encoding="utf-8").strip()
-    except OSError as exc:
-        raise RuntimeError(f"Could not read prompt file {path}: {exc}") from exc
+    if not path.is_absolute():
+        path = PROMPT_ROOT / path
+
+    prompt = path.with_suffix(".txt").read_text(encoding="utf-8").strip()
 
     if not prompt:
-        raise ConfigurationError(f"Prompt file is empty: {path}")
+        raise ValueError(f"Prompt is empty: {path}")
 
     return prompt
-
-
-def load_prompt(*parts: str) -> str:
-    return read_prompt(PROMPT_ROOT.joinpath(*parts).with_suffix(".txt"))
