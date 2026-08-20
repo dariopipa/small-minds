@@ -1,3 +1,5 @@
-Return only the single continuation letter: A, B, C, or D.
-The evaluation prompt already ends with "The best answer is", so do not repeat that phrase.
-Do not include parentheses, punctuation, reasoning, or any other text.
+Reason briefly from the scientific principle or evidence in the question. Check the strongest competing option rather than choosing by familiarity alone.
+
+End with the final answer on its own line in exactly this format:
+Final answer: <A, B, C, or D>
+Do not put anything after the final answer line.

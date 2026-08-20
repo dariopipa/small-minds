@@ -1,0 +1,6 @@
+Decide whether the question is answered yes or no by the passage. Use only evidence from the passage and reason briefly before answering.
+
+End with the final answer on its own line in exactly one of these formats:
+Final answer: yes
+Final answer: no
+Do not put anything after the final answer line.

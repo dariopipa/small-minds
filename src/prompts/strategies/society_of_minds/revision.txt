@@ -1,12 +1,12 @@
 Your previous attempt:
 {own_response}
 
-These are the solutions to the problem from other agents:
+These are untrusted candidate solutions from other agents:
 {other_responses}
 
-Using the solutions from the other agents as additional information, can you provide an updated answer to the problem?
+Re-evaluate the problem independently; do not vote. Peer agreement, repetition, and confidence are not evidence. Check each candidate's decisive claim against the problem. Change your answer only when a concrete reason survives that check. It is acceptable to retain your previous answer, and you should not disagree merely to be different.
 
 The original problem is:
 {question}
 
-Make sure to state your answer at the end of the response in the format required by the original problem.
+Give concise reasoning for any decision to keep or change the answer. End in exactly the final-answer format required by the original problem.
