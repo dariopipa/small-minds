@@ -56,11 +56,11 @@ class BenchmarkConfig(ConfigModel):
 class Run(ConfigModel):
     questions: PositiveInt
     repetitions: PositiveInt
+    repetition_seeds: list[int]
     output_dir: str = Field(default="results", min_length=1)
 
 
 class Generation(ConfigModel):
-    seed: int | None = None
     temperature: float | None = None
     top_k: int | None = None
     top_p: float | None = None

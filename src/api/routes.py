@@ -77,6 +77,7 @@ async def completions(
     request: Request,
     experiment: Annotated[str | None, Query()] = None,
     repetition: Annotated[int, Query(ge=1)] = 1,
+    repetition_seed: Annotated[int | None, Query()] = None,
 ) -> CompletionResponse:
     strategy = get_strategy(request, experiment)
 
@@ -86,6 +87,7 @@ async def completions(
             GenerateRequest(
                 prompt=completion_request.prompt,
                 stop=completion_request.stop,
+                seed=repetition_seed,
                 repetition=repetition,
             )
         )

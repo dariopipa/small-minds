@@ -16,7 +16,7 @@ class RoleBasedSVJStrategy(Strategy):
     async def run(self, generation_request: GenerateRequest) -> StrategyResult:
         solver_response = await self.solver.run(
             generation_request,
-            seed_key="solver",
+            seed_key="role_based_svj:solver",
         )
 
         verifier_response = await self.verifier.run(
@@ -29,7 +29,7 @@ class RoleBasedSVJStrategy(Strategy):
                     "stop": None,
                 }
             ),
-            seed_key="verifier",
+            seed_key="role_based_svj:verifier",
         )
 
         responses = [solver_response, verifier_response]
@@ -46,7 +46,7 @@ class RoleBasedSVJStrategy(Strategy):
                     "temperature": 0.0,
                 }
             ),
-            seed_key="judge",
+            seed_key="role_based_svj:judge",
         )
 
         responses.append(judge_response)

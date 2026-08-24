@@ -52,7 +52,6 @@ async def build_strategies() -> dict[str, Strategy]:
             agent_factory=AgentFactory(
                 llm_client=llm_client,
                 answer_extractor=create_extractor(experiment.benchmark.task),
-                base_seed=provider_config.options.seed,
                 base_temperature=provider_config.options.temperature,
             ),
         )

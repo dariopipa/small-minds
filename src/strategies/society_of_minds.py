@@ -21,7 +21,7 @@ class SocietyOfMindsStrategy(Strategy):
         for agent_index in range(self.agent_number):
             agent_response = await self.agent.run(
                 generation_request,
-                seed_key=f"candidate:{agent_index}",
+                seed_key=f"society_of_minds:candidate:{agent_index}",
                 agent_id=agent_index + 1,
                 round_id=1,
             )
@@ -62,7 +62,7 @@ class SocietyOfMindsStrategy(Strategy):
                 )
                 agent_response = await self.agent.run(
                     debate_request,
-                    seed_key=f"revision:{round_index}:{agent_index}",
+                    seed_key=(f"society_of_minds:revision:{round_index}:{agent_index}"),
                     agent_id=agent_index + 1,
                     round_id=round_index + 1,
                 )

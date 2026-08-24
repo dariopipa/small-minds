@@ -5,7 +5,6 @@ class AgentConfig(BaseModel):
     name: str
     role: str
     system_prompt: str | None = None
-    base_seed: int | None = None
     base_temperature: float | None = None
 
 

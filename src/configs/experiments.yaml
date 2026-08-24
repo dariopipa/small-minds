@@ -1,17 +1,19 @@
 run:
-  questions: 500
-  repetitions: 2
+  questions: 200
+  repetitions: 3
+  repetition_seeds:
+    - 42
+    - 45
+    - 48
   output_dir: results
 
 strategies:
   direct:
     generation:
-      seed: 42
       temperature: 0
 
   self_consistency:
     generation:
-      seed: 42
       temperature: 0.5
       top_p: 0.9
     params:
@@ -19,7 +21,6 @@ strategies:
 
   society_of_minds:
     generation:
-      seed: 42
       temperature: 0.5
       top_p: 0.9
     params:
@@ -28,7 +29,6 @@ strategies:
 
   role_based_svj:
     generation:
-      seed: 42
       temperature: 0.5
       top_p: 0.9
 

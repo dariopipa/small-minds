@@ -31,7 +31,7 @@ class SelfConsistencyStrategy(Strategy):
             responses.append(
                 await self.agent.run(
                     generation_request,
-                    seed_key=f"candidate:{i}",
+                    seed_key=f"self_consistency:candidate:{i}",
                 )
             )
 
@@ -41,7 +41,7 @@ class SelfConsistencyStrategy(Strategy):
             responses.append(
                 await self.agent.run(
                     generation_request,
-                    seed_key=f"candidate:{self.agent_number}",
+                    seed_key=f"self_consistency:candidate:{self.agent_number}",
                 )
             )
             answers = _get_answers(responses)

@@ -44,6 +44,7 @@ def build_llm_eval_config(
     experiment: Experiment,
     question_limit: int,
     repetition: int = 1,
+    repetition_seed: int | None = None,
 ) -> LLMEvalHarnessConfig:
     system_instruction = (
         f"{load_prompt(SOURCE_DIR / experiment.benchmark.prompt)}\n\n"
@@ -53,7 +54,12 @@ def build_llm_eval_config(
     return LLMEvalHarnessConfig(
         backend=settings.evaluation.backend,
         model_args=LocalCompletionsModelArgs(
-            base_url=evaluation_base_url(settings, experiment.name, repetition),
+            base_url=evaluation_base_url(
+                settings,
+                experiment.name,
+                repetition,
+                repetition_seed,
+            ),
             tokenizer_backend="none",
             tokenized_requests=False,
             eos_string="<|im_end|>",
@@ -78,8 +84,12 @@ def evaluation_base_url(
     settings: ApplicationSettings,
     experiment_name: str | None = None,
     repetition: int = 1,
+    repetition_seed: int | None = None,
 ) -> str:
     base_url = f"http://{settings.server.host}:{settings.server.port}/v1/completions"
     if experiment_name is None:
         return base_url
-    return f"{base_url}?{urlencode({'experiment': experiment_name, 'repetition': repetition})}"
+    query = {"experiment": experiment_name, "repetition": repetition}
+    if repetition_seed is not None:
+        query["repetition_seed"] = repetition_seed
+    return f"{base_url}?{urlencode(query)}"

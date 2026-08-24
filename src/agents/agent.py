@@ -56,10 +56,10 @@ class Agent:
             prompt = f"{self.agent_config.system_prompt}\n\nTask:\n{prompt}"
 
         seed = generation_request.seed
-        if seed is None and self.agent_config.base_seed is not None:
+        if seed is not None:
             seed = derive_seed(
-                self.agent_config.base_seed,
-                generation_request.repetition,
+                seed,
+                generation_request.prompt,
                 seed_key,
             )
 

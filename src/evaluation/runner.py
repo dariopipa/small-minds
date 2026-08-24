@@ -110,7 +110,11 @@ def _run_once(
     error = None
     try:
         evaluation_config = build_llm_eval_config(
-            settings, experiment, config.run.questions, repetition
+            settings,
+            experiment,
+            config.run.questions,
+            repetition,
+            config.run.repetition_seeds[repetition - 1],
         )
         results = LLMEvalHarness(evaluation_config).evaluate()
         raw_samples = results["samples"][experiment.benchmark.task]
@@ -155,7 +159,7 @@ def _run_once(
             "repetition": repetition,
             "question_limit": config.run.questions,
             "model": settings.provider.model,
-            "seed": experiment.strategy.generation.seed,
+            "seed": config.run.repetition_seeds[repetition - 1],
             "sample_count": sum(
                 sample["record_type"] == "sample" for sample in samples
             ),
