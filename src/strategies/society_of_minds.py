@@ -22,6 +22,8 @@ class SocietyOfMindsStrategy(Strategy):
             agent_response = await self.agent.run(
                 generation_request,
                 seed_key=f"candidate:{agent_index}",
+                agent_id=agent_index + 1,
+                round_id=1,
             )
             agent_responses.append(agent_response)
             current_responses.append(agent_response)
@@ -61,6 +63,8 @@ class SocietyOfMindsStrategy(Strategy):
                 agent_response = await self.agent.run(
                     debate_request,
                     seed_key=f"revision:{round_index}:{agent_index}",
+                    agent_id=agent_index + 1,
+                    round_id=round_index + 1,
                 )
                 agent_responses.append(agent_response)
                 current_responses.append(agent_response)
@@ -92,6 +96,10 @@ class SocietyOfMindsStrategy(Strategy):
             ),
             total_latency_s=sum(
                 agent_response.latency_s or 0 for agent_response in agent_responses
+            ),
+            provider_duration_s=sum(
+                agent_response.provider_duration_s or 0
+                for agent_response in agent_responses
             ),
             initial_extracted_response=initial_answer,
             agent_responses=agent_responses,

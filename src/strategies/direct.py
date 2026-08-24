@@ -22,5 +22,6 @@ class DirectStrategy(Strategy):
             prompt_tokens=agent_response.prompt_tokens,
             output_tokens=agent_response.output_tokens,
             total_latency_s=agent_response.latency_s,
+            provider_duration_s=agent_response.provider_duration_s,
             agent_responses=[agent_response],
         )

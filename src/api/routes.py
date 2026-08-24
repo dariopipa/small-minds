@@ -81,6 +81,7 @@ async def completions(
     strategy = get_strategy(request, experiment)
 
     try:
+        started_at = time.perf_counter()
         result = await strategy.run(
             GenerateRequest(
                 prompt=completion_request.prompt,
@@ -88,6 +89,7 @@ async def completions(
                 repetition=repetition,
             )
         )
+        result.end_to_end_latency_s = time.perf_counter() - started_at
     except Exception as exc:
         save_record(completion_request.prompt, error=str(exc))
         raise
@@ -100,12 +102,13 @@ async def completions(
     total_tokens = result.prompt_tokens + result.output_tokens
 
     logger.info(
-        "Completion finished: id=%s strategy=%s model=%s calls=%d tokens=%d",
+        "Completion finished: id=%s strategy=%s model=%s calls=%d tokens=%d end_to_end_latency_s=%.3f",
         record.id,
         result.strategy_name,
         result.model,
         len(result.agent_responses),
         total_tokens,
+        result.end_to_end_latency_s,
     )
 
     return CompletionResponse(

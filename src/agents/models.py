@@ -21,3 +21,6 @@ class AgentResponse(BaseModel):
     seed: int | None = None
     temperature: float | None = None
     latency_s: float | None = None
+    provider_duration_s: float | None = None
+    agent_id: int | None = None
+    round_id: int | None = None

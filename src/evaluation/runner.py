@@ -171,6 +171,12 @@ def _run_once(
             "model_latency_seconds": sum(
                 result["total_latency_s"] or 0 for result in strategy_results
             ),
+            "end_to_end_latency_seconds": sum(
+                result["end_to_end_latency_s"] or 0 for result in strategy_results
+            ),
+            "provider_duration_seconds": sum(
+                result["provider_duration_s"] or 0 for result in strategy_results
+            ),
             "wall_time_seconds": time.perf_counter() - timer,
             "cost": None,
             "evaluation": None

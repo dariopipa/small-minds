@@ -68,5 +68,6 @@ class SelfConsistencyStrategy(Strategy):
             prompt_tokens=sum(r.prompt_tokens for r in responses),
             output_tokens=sum(r.output_tokens for r in responses),
             total_latency_s=sum(r.latency_s or 0 for r in responses),
+            provider_duration_s=sum(r.provider_duration_s or 0 for r in responses),
             agent_responses=responses,
         )

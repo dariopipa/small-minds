@@ -1,5 +1,4 @@
 from agents.agent import Agent
-from common.seeding import derive_seed
 from llm.requests import GenerateRequest
 from prompts import load_prompt
 from strategies.base import Strategy
@@ -11,6 +10,7 @@ class RoleBasedSVJStrategy(Strategy):
         self.solver = solver
         self.verifier = verifier
         self.judge = judge
+        self.verification_prompt = load_prompt("strategies/role_based_svj/verification")
         self.judge_prompt = load_prompt("strategies/role_based_svj/judge")
 
     async def run(self, generation_request: GenerateRequest) -> StrategyResult:
@@ -20,51 +20,27 @@ class RoleBasedSVJStrategy(Strategy):
         )
 
         verifier_response = await self.verifier.run(
-            generation_request,
+            generation_request.model_copy(
+                update={
+                    "prompt": self.verification_prompt.format(
+                        question=generation_request.prompt,
+                        solver_response=solver_response.response,
+                    ),
+                    "stop": None,
+                }
+            ),
             seed_key="verifier",
         )
 
         responses = [solver_response, verifier_response]
-
-        if (
-            solver_response.extracted_response is not None
-            and solver_response.extracted_response
-            == verifier_response.extracted_response
-        ):
-            # Solver and verifier agree, so no judge is needed.
-            return StrategyResult(
-                model=solver_response.model,
-                strategy_name="role_based_svj",
-                prompt=generation_request.prompt,
-                response=self.solver.answer_extractor.normalize_final_response(
-                    solver_response.response
-                ),
-                extracted_response=solver_response.extracted_response,
-                prompt_tokens=sum(r.prompt_tokens for r in responses),
-                output_tokens=sum(r.output_tokens for r in responses),
-                total_latency_s=sum(r.latency_s or 0 for r in responses),
-                agent_responses=responses,
-            )
-
-        candidate_a = solver_response.response
-        candidate_b = verifier_response.response
-
-        seed = derive_seed(
-            self.judge.agent_config.base_seed or 0,
-            generation_request.repetition,
-            "svj_candidate_order",
-        )
-
-        if seed % 2:
-            candidate_a, candidate_b = candidate_b, candidate_a
 
         judge_response = await self.judge.run(
             generation_request.model_copy(
                 update={
                     "prompt": self.judge_prompt.format(
                         question=generation_request.prompt,
-                        candidate_a=candidate_a,
-                        candidate_b=candidate_b,
+                        solver_response=solver_response.response,
+                        verifier_response=verifier_response.response,
                     ),
                     "stop": None,
                     "temperature": 0.0,
@@ -86,5 +62,6 @@ class RoleBasedSVJStrategy(Strategy):
             prompt_tokens=sum(r.prompt_tokens for r in responses),
             output_tokens=sum(r.output_tokens for r in responses),
             total_latency_s=sum(r.latency_s or 0 for r in responses),
+            provider_duration_s=sum(r.provider_duration_s or 0 for r in responses),
             agent_responses=responses,
         )

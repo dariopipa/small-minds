@@ -25,6 +25,8 @@ class StrategyResult(BaseModel):
     prompt_tokens: int = 0
     output_tokens: int = 0
     total_latency_s: float | None = None
+    end_to_end_latency_s: float | None = None
+    provider_duration_s: float | None = None
     initial_extracted_response: str | None = None
     agent_responses: list[AgentResponse]
 

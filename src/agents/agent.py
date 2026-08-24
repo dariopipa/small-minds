@@ -21,6 +21,8 @@ class Agent:
         self,
         generation_request: GenerateRequest,
         seed_key: str,
+        agent_id: int | None = None,
+        round_id: int | None = None,
     ) -> AgentResponse:
         request = self._build_generation_request(generation_request, seed_key)
 
@@ -39,6 +41,9 @@ class Agent:
             seed=request.seed,
             temperature=request.temperature,
             latency_s=t.elapsed,
+            provider_duration_s=llm_response.duration_s,
+            agent_id=agent_id,
+            round_id=round_id,
         )
 
     def _build_generation_request(
