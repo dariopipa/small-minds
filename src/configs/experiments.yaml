@@ -2,9 +2,9 @@ run:
   questions: 200
   repetitions: 3
   repetition_seeds:
-    - 42
-    - 45
-    - 48
+    - 74284960
+    - 1353659849
+    - 1153445793
   output_dir: results
 
 strategies:
