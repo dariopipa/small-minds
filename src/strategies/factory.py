@@ -7,6 +7,8 @@ from strategies.role_based_svj import RoleBasedSVJStrategy
 from strategies.self_consistency import SelfConsistencyStrategy
 from strategies.society_of_minds import SocietyOfMindsStrategy
 
+DEFAULT_STRATEGY_PROMPT = "strategies/default"
+
 
 # mypy: disable-error-code=union-attr
 class StrategyFactory:
@@ -22,7 +24,7 @@ class StrategyFactory:
                     agent=agent_factory.create(
                         name=strategy_config.name,
                         role="solver",
-                        system_prompt=load_prompt("strategies/default"),
+                        system_prompt=load_prompt(DEFAULT_STRATEGY_PROMPT),
                     )
                 )
 
@@ -49,7 +51,7 @@ class StrategyFactory:
                     agent=agent_factory.create(
                         name=strategy_config.name,
                         role="solver",
-                        system_prompt=load_prompt("strategies/default"),
+                        system_prompt=load_prompt(DEFAULT_STRATEGY_PROMPT),
                     ),
                     agent_number=strategy_config.agent_number,
                 )
@@ -59,7 +61,7 @@ class StrategyFactory:
                     agent=agent_factory.create(
                         name=strategy_config.name,
                         role="solver",
-                        system_prompt=load_prompt("strategies/default"),
+                        system_prompt=load_prompt(DEFAULT_STRATEGY_PROMPT),
                     ),
                     agent_number=strategy_config.agent_number,
                     debate_rounds=strategy_config.debate_rounds,

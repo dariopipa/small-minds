@@ -2,8 +2,8 @@ import re
 
 from extractors.base import AnswerExtractor
 
-GSM8K_ANSWER_PATTERN = re.compile(r"####\s*(-?\$?[0-9][0-9,]*(?:\.[0-9]+)?)")
-NUMBER_PATTERN = re.compile(r"-?\$?[0-9][0-9,]*(?:\.[0-9]+)?")
+GSM8K_ANSWER_PATTERN = re.compile(r"####\s*(-?\$?(?a:\d[\d,]*(?:\.\d+)?))")
+NUMBER_PATTERN = re.compile(r"-?\$?(?a:\d[\d,]*(?:\.\d+)?)")
 
 
 def normalize_number(text: str) -> str:

@@ -56,10 +56,10 @@ def main() -> None:
     except KeyboardInterrupt:
         sys.exit(1)
     except ConfigurationError as exc:
-        logger.error("%s", exc)
+        logger.exception("%s", exc)
         sys.exit(2)
     except (ModelLoadException, ModelNotFoundException) as exc:
-        logger.error("%s", exc)
+        logger.exception("%s", exc)
         sys.exit(1)
 
 

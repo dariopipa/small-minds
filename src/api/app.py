@@ -74,7 +74,7 @@ async def lifespan(app: FastAPI):
             ", ".join(strategies),
         )
     except (ConfigurationError, ModelLoadException, ModelNotFoundException) as exc:
-        logger.error("API startup failed: %s", exc)
+        logger.exception("API startup failed: %s", exc)
         raise
 
     yield

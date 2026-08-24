@@ -4,6 +4,7 @@ import os
 import time
 import uuid
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
@@ -67,12 +68,15 @@ def save_record(
     return record
 
 
-@routes.post("/v1/completions")
+@routes.post(
+    "/v1/completions",
+    responses={400: {"description": "Unknown experiment"}},
+)
 async def completions(
     completion_request: CompletionRequest,
     request: Request,
-    experiment: str | None = Query(default=None),
-    repetition: int = Query(default=1, ge=1),
+    experiment: Annotated[str | None, Query()] = None,
+    repetition: Annotated[int, Query(ge=1)] = 1,
 ) -> CompletionResponse:
     strategy = get_strategy(request, experiment)
 
