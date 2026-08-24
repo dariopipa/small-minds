@@ -37,16 +37,19 @@
     th:first-child,td:first-child { text-align:left; }
     tbody tr:last-child td { border-bottom:0; }
     .best-row { background:#eafaf3; font-weight:650; }
-    .bar-chart { background:var(--paper); border:1px solid var(--line); border-radius:10px;
-      padding:18px; margin:18px 0; }
-    .bar-row { display:grid; grid-template-columns:minmax(140px,220px) 1fr 65px;
-      gap:12px; align-items:center; margin:10px 0; }
-    .bar-track { height:16px; border-radius:10px; background:#e6ebf2; overflow:hidden; }
-    .bar { height:100%; background:var(--accent); border-radius:10px; }
-    .bar.best { background:var(--best); }
-    .bar-value { text-align:right; font-weight:700; }
     .reference { margin:18px 0; border-left:4px solid var(--accent); }
     .reference p { margin-bottom:0; }
+    .figure-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:18px; align-items:start; }
+    .academic-figure { margin:0; min-width:0; background:var(--paper);
+      border:1px solid var(--line); border-radius:10px; overflow:hidden;
+      box-shadow:0 2px 8px #1822300a; }
+    .academic-figure > a { display:block; padding:10px; background:#fff; }
+    .academic-figure img { display:block; width:100%; height:auto; }
+    .academic-figure figcaption { padding:12px 14px 14px; border-top:1px solid var(--line);
+      color:var(--muted); font-size:12px; }
+    .academic-figure figcaption strong { color:var(--ink); font-size:13px; }
+    .figure-links { display:block; margin-top:6px; }
     a { color:#2647bd; }
     .footer { margin-top:40px; color:var(--muted); font-size:12px; }
     @media(max-width:1100px) {
@@ -57,8 +60,8 @@
       main { padding:20px 12px; }
       .cards { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .path-card { grid-column:span 2; }
-      .bar-row { grid-template-columns:110px 1fr 55px; }
       th,td { padding:8px 7px; }
+      .figure-grid { grid-template-columns:1fr; }
     }
     @media(max-width:440px) {
       .cards { grid-template-columns:1fr; }
@@ -73,7 +76,7 @@
   </header>
   <div class="cards">
     <div class="card path-card"><div class="muted">Experiment folder</div><div class="value" title="$experiment_folder">$folder_label</div></div>
-    <div class="card"><div class="muted">Model</div><div class="value">$model</div></div>
+    <div class="card"><div class="muted">$model_card_label</div><div class="value">$model</div></div>
     <div class="card"><div class="muted">Benchmarks</div><div class="value">$benchmark_count</div></div>
     <div class="card"><div class="muted">Strategies</div><div class="value">$strategy_count</div></div>
     <div class="card"><div class="muted">Repetitions</div><div class="value">$repetitions</div></div>
@@ -88,6 +91,7 @@
     <h3>Benchmark × strategy accuracy</h3>
     $matrix_table
   </section>
+  $academic_figures
   $benchmark_sections
   <section id="data-quality">
     <h2>Data quality</h2>

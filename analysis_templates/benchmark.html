@@ -3,7 +3,6 @@
   <p class="muted">Primary saved metric: $metric_name with filter
   $filter_name. Accuracy is averaged across repetitions; counts below
   are repeated-run observations. $flexible_note</p>
-  $accuracy_bars
   $reference
   <h3>Strategy detail</h3>
   $performance_table
@@ -11,8 +10,11 @@
   $repetition_table
   <h3>Direct vs strategy</h3>
   <p class="muted">Question-transition counts are averages per matched repetition,
-  so repetitions are not pooled as independent questions.</p>
+  so repetitions are not pooled as independent questions. Absolute improvement is
+  the accuracy-point change from Direct. Relative accuracy gain compares that change
+  with Direct accuracy; relative error reduction is the share of Direct errors removed.</p>
   $question_table
+  $strategy_analysis
   <h3>Efficiency</h3>
   $efficiency_table
   <h3>Efficiency trade-offs vs Direct</h3>
