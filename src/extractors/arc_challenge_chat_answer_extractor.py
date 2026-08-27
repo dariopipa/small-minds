@@ -3,7 +3,7 @@ import re
 from extractors.base import AnswerExtractor
 
 FINAL_ANSWER_PATTERN = re.compile(
-    r"^final answer:\s*([ABCD])\s*$",
+    r"^(?:final answer:\s*|the best answer is\s+)([ABCD])\.?\s*$",
     re.IGNORECASE | re.MULTILINE,
 )
 

@@ -4,6 +4,7 @@ import os
 import time
 import uuid
 from pathlib import Path
+from threading import Lock
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 routes = APIRouter()
 results_path = os.getenv("STRATEGY_RESULTS_PATH")
 RESULTS_PATH = Path(results_path) if results_path else None
+RESULTS_WRITE_LOCK = Lock()
 
 
 class CompletionRecord(BaseModel):
@@ -56,14 +58,16 @@ def save_record(
     record = CompletionRecord(prompt=prompt, result=result, error=error)
 
     if RESULTS_PATH is not None:
-        with RESULTS_PATH.open("a", encoding="utf-8") as f:
-            f.write(
-                json.dumps(
-                    record.model_dump(mode="json", exclude_none=True),
-                    ensure_ascii=False,
-                )
-                + "\n"
+        line = (
+            json.dumps(
+                record.model_dump(mode="json", exclude_none=True),
+                ensure_ascii=False,
             )
+            + "\n"
+        )
+        with RESULTS_WRITE_LOCK:
+            with RESULTS_PATH.open("a", encoding="utf-8") as f:
+                f.write(line)
 
     return record
 

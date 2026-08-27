@@ -10,7 +10,7 @@ def read_calls(path: Path) -> list[dict[str, Any]]:
         return []
     return [
         json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
+        for line in path.read_text(encoding="utf-8").split("\n")
         if line.strip()
     ]
 

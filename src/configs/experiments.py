@@ -54,7 +54,7 @@ class BenchmarkConfig(ConfigModel):
 
 
 class Run(ConfigModel):
-    questions: PositiveInt
+    questions: PositiveInt | None = None
     repetitions: PositiveInt
     repetition_seeds: list[int]
     output_dir: str = Field(default="results", min_length=1)

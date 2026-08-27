@@ -33,7 +33,7 @@ class StrategyFactory:
                     solver=agent_factory.create(
                         name=strategy_config.name,
                         role="solver",
-                        system_prompt=load_prompt("strategies/role_based_svj/solver"),
+                        system_prompt=load_prompt(DEFAULT_STRATEGY_PROMPT),
                     ),
                     verifier=agent_factory.create(
                         name="role_based_svj_verifier",

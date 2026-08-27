@@ -42,7 +42,7 @@ class LLMEvalHarnessConfig(BaseModel):
 def build_llm_eval_config(
     settings: ApplicationSettings,
     experiment: Experiment,
-    question_limit: int,
+    question_limit: int | None,
     repetition: int = 1,
     repetition_seed: int | None = None,
 ) -> LLMEvalHarnessConfig:

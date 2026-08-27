@@ -1,4 +1,5 @@
 run:
+  # Set to null to evaluate the complete benchmark split.
   questions: 200
   repetitions: 3
   repetition_seeds:

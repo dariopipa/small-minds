@@ -323,7 +323,7 @@ def parse_samples(
     warnings: list[str],
 ) -> list[Sample]:
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()
+        lines = path.read_text(encoding="utf-8").split("\n")
     except (OSError, UnicodeError) as exc:
         raise AnalysisError(f"Could not read {path}: {exc}") from exc
 
@@ -428,25 +428,35 @@ def load_results(
         for run_path, experiment_dir in run_paths
     ]
 
-    identities = [(run.model, run.benchmark, run.strategy, run.repetition) for run in runs]
+    identities = [
+        (run.model, run.benchmark, run.strategy, run.repetition) for run in runs
+    ]
     if len(identities) != len(set(identities)):
         duplicates = [item for item, count in Counter(identities).items() if count > 1]
         raise AnalysisError(f"Duplicate run identities: {duplicates}.")
 
     validate_result_set(runs, warnings)
-    label = experiment_dirs[0].name if len(experiment_dirs) == 1 else f"{len(experiment_dirs)} result folders"
+    label = (
+        experiment_dirs[0].name
+        if len(experiment_dirs) == 1
+        else f"{len(experiment_dirs)} result folders"
+    )
     return label, runs, list(dict.fromkeys(warnings))
 
 
 def validate_result_set(runs: list[Run], warnings: list[str]) -> None:
-    runs_by_benchmark_repetition: dict[tuple[str, str, int], list[Run]] = defaultdict(list)
+    runs_by_benchmark_repetition: dict[tuple[str, str, int], list[Run]] = defaultdict(
+        list
+    )
     for run in runs:
         runs_by_benchmark_repetition[(run.model, run.benchmark, run.repetition)].append(
             run
         )
-    for (model, benchmark, repetition), matching_runs in (
-        runs_by_benchmark_repetition.items()
-    ):
+    for (
+        model,
+        benchmark,
+        repetition,
+    ), matching_runs in runs_by_benchmark_repetition.items():
         baseline = next(
             (run for run in matching_runs if run.strategy == BASELINE_STRATEGY),
             matching_runs[0],
@@ -616,7 +626,9 @@ def calculate_statistics(runs: list[Run], warnings: list[str]) -> list[Group]:
                 partial_fields=tuple(partial_fields),
             )
         )
-    return sorted(groups, key=lambda group: (group.model, group.benchmark, group.strategy))
+    return sorted(
+        groups, key=lambda group: (group.model, group.benchmark, group.strategy)
+    )
 
 
 def compare_strategies(runs: list[Run], groups: list[Group]) -> list[Comparison]:
@@ -644,9 +656,7 @@ def compare_strategies(runs: list[Run], groups: list[Group]) -> list[Comparison]
         )
         relative_error_reduction = (
             gain / (1 - direct_mean) * 100
-            if gain is not None
-            and direct_mean is not None
-            and direct_mean < 1
+            if gain is not None and direct_mean is not None and direct_mean < 1
             else None
         )
         if gain is None:
@@ -836,9 +846,7 @@ def build_plot_data(groups: list[Group]) -> list[StrategyPlotData]:
     for group in groups:
         repetition_gains: list[float] = []
         if group.strategy != BASELINE_STRATEGY:
-            direct = group_lookup.get(
-                (group.model, group.benchmark, BASELINE_STRATEGY)
-            )
+            direct = group_lookup.get((group.model, group.benchmark, BASELINE_STRATEGY))
             direct_runs = (
                 {run.repetition: run for run in direct.runs}
                 if direct is not None
@@ -1164,8 +1172,12 @@ def render_svj_analysis(groups: list[Group], benchmark: str) -> str:
     observations = sum(counts.values())
     if observations == 0:
         return ""
-    solver_wrong = counts["solver_wrong_final_correct"] + counts["solver_wrong_final_wrong"]
-    solver_correct = counts["solver_correct_final_correct"] + counts["solver_correct_final_wrong"]
+    solver_wrong = (
+        counts["solver_wrong_final_correct"] + counts["solver_wrong_final_wrong"]
+    )
+    solver_correct = (
+        counts["solver_correct_final_correct"] + counts["solver_correct_final_wrong"]
+    )
     return """
   <h3>Solver-Verifier-Judge behaviour</h3>
 """ + render_table(
@@ -1243,12 +1255,12 @@ def render_benchmark_section(
         if has_flexible_diagnostic:
             repetition_row.extend(
                 [
-                ", ".join(
-                    f"R{run.repetition}: {fmt_percent(run.flexible_score)}"
-                    for run in group.runs
-                ),
-                fmt_percent(group.mean),
-                fmt_percent(group.flexible_mean),
+                    ", ".join(
+                        f"R{run.repetition}: {fmt_percent(run.flexible_score)}"
+                        for run in group.runs
+                    ),
+                    fmt_percent(group.mean),
+                    fmt_percent(group.flexible_mean),
                 ]
             )
         else:
@@ -1344,9 +1356,9 @@ def render_benchmark_section(
         performance_headers.append("Flexible accuracy (diagnostic)")
         repetition_headers.extend(
             [
-            "Flexible score per repetition (diagnostic)",
-            "Strict mean",
-            "Flexible mean (diagnostic)",
+                "Flexible score per repetition (diagnostic)",
+                "Strict mean",
+                "Flexible mean (diagnostic)",
             ]
         )
     else:
@@ -1358,7 +1370,7 @@ def render_benchmark_section(
     repetition_table = (
         render_table(repetition_headers, repetition_rows)
         if any(len(group.runs) > 1 for group in groups)
-        else "<p class=\"muted\">Repetition variability requires at least two repetitions.</p>"
+        else '<p class="muted">Repetition variability requires at least two repetitions.</p>'
     )
     question_table = (
         render_table(
@@ -1463,7 +1475,9 @@ def render_report(
                 for group in groups
                 if group.model == model and group.benchmark == benchmark
             ]
-            scores = [group.mean for group in benchmark_groups if group.mean is not None]
+            scores = [
+                group.mean for group in benchmark_groups if group.mean is not None
+            ]
             best = max(scores) if scores else None
             for group in benchmark_groups:
                 comparison = comparison_lookup.get((model, benchmark, group.strategy))

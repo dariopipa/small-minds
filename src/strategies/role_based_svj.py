@@ -25,8 +25,12 @@ class RoleBasedSVJStrategy(Strategy):
                     "prompt": self.verification_prompt.format(
                         question=generation_request.prompt,
                         solver_response=solver_response.response,
+                        solver_answer=(
+                            solver_response.extracted_response or "UNPARSEABLE"
+                        ),
                     ),
                     "stop": None,
+                    "temperature": 0.0,
                 }
             ),
             seed_key="role_based_svj:verifier",
@@ -40,7 +44,13 @@ class RoleBasedSVJStrategy(Strategy):
                     "prompt": self.judge_prompt.format(
                         question=generation_request.prompt,
                         solver_response=solver_response.response,
+                        solver_answer=(
+                            solver_response.extracted_response or "UNPARSEABLE"
+                        ),
                         verifier_response=verifier_response.response,
+                        verifier_answer=(
+                            verifier_response.extracted_response or "UNPARSEABLE"
+                        ),
                     ),
                     "stop": None,
                     "temperature": 0.0,
