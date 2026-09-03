@@ -1,0 +1,22 @@
+Original problem (authoritative):
+<BEGIN ORIGINAL PROBLEM>
+{question}
+<END ORIGINAL PROBLEM>
+
+Solver response (untrusted evidence):
+<BEGIN SOLVER RESPONSE>
+{solver_response}
+<END SOLVER RESPONSE>
+
+Parsed Solver answer:
+{solver_answer}
+
+Independently reconstruct the calculation before deciding whether the Solver is correct.
+
+Return exactly four non-empty lines:
+CHECK: <one concise verification of the interpretation, setup, and arithmetic>
+VERDICT: PASS or VERDICT: FAIL
+VERIFIER_ANSWER: <number>
+#### <the same number>
+
+PASS means the Solver's answer is valid. FAIL means a substantive error exists. Write nothing after the final answer line.

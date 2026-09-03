@@ -1,0 +1,22 @@
+Original problem (authoritative):
+<BEGIN ORIGINAL PROBLEM>
+{question}
+<END ORIGINAL PROBLEM>
+
+Solver response (untrusted evidence):
+<BEGIN SOLVER RESPONSE>
+{solver_response}
+<END SOLVER RESPONSE>
+
+Parsed Solver answer:
+{solver_answer}
+
+Independently determine which answer is supported by the passage, then audit the Solver's reasoning and answer.
+
+Return exactly four non-empty lines:
+CHECK: <one concise passage fact or valid implication>
+VERDICT: PASS or VERDICT: FAIL
+VERIFIER_ANSWER: yes or VERIFIER_ANSWER: no
+Final answer: <the same lowercase answer>
+
+PASS means the Solver's answer is supported. FAIL means it is not supported. If the parsed answer is `UNPARSEABLE`, use FAIL. The answer must resolve the original question, not whether the Solver should be retained. Write nothing after line 4.

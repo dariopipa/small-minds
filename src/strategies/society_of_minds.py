@@ -2,17 +2,22 @@ from collections import Counter
 
 from agents.agent import Agent
 from llm.requests import GenerateRequest
-from prompts import load_prompt
 from strategies.base import Strategy
 from strategies.models import StrategyResult
 
 
 class SocietyOfMindsStrategy(Strategy):
-    def __init__(self, agent: Agent, agent_number: int, debate_rounds: int):
+    def __init__(
+        self,
+        agent: Agent,
+        agent_number: int,
+        debate_rounds: int,
+        revision_prompt: str,
+    ):
         self.agent = agent
         self.agent_number = agent_number
         self.debate_rounds = debate_rounds
-        self.revision_prompt = load_prompt("strategies/society_of_minds/revision")
+        self.revision_prompt = revision_prompt
 
     async def run(self, generation_request: GenerateRequest) -> StrategyResult:
         agent_responses = []
@@ -29,6 +34,9 @@ class SocietyOfMindsStrategy(Strategy):
             current_responses.append(agent_response)
 
         initial_answer = self._majority_answer(current_responses)
+        followup_context = self.agent.answer_extractor.prepare_followup_context(
+            generation_request.prompt
+        )
 
         # The reference implementation counts the independent generation as
         # round one. Later rounds update each answer using the other agents'
@@ -52,7 +60,7 @@ class SocietyOfMindsStrategy(Strategy):
                     for candidate_index, other_index in enumerate(other_indices)
                 )
                 debate_prompt = self.revision_prompt.format(
-                    question=generation_request.prompt,
+                    question=followup_context,
                     own_response=own_response.response,
                     other_responses=other_responses,
                 )

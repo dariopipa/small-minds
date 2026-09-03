@@ -6,57 +6,64 @@ from strategies.models import StrategyResult
 
 
 class RoleBasedSVJStrategy(Strategy):
-    def __init__(self, solver: Agent, verifier: Agent, judge: Agent):
+    def __init__(
+        self,
+        solver: Agent,
+        verifier: Agent,
+        judge: Agent,
+        prompt_directory: str,
+    ):
         self.solver = solver
         self.verifier = verifier
         self.judge = judge
-        self.verification_prompt = load_prompt("strategies/role_based_svj/verification")
-        self.judge_prompt = load_prompt("strategies/role_based_svj/judge")
+        self.verifier_task_prompt = load_prompt(f"{prompt_directory}/verifier_task")
+        self.judge_task_prompt = load_prompt(f"{prompt_directory}/judge_task")
 
     async def run(self, generation_request: GenerateRequest) -> StrategyResult:
+        followup_context = self.solver.answer_extractor.prepare_followup_context(
+            generation_request.prompt
+        )
         solver_response = await self.solver.run(
             generation_request,
-            seed_key="role_based_svj:solver",
+            seed_key="direct:solver",
         )
+        solver_answer = solver_response.extracted_response
 
         verifier_response = await self.verifier.run(
             generation_request.model_copy(
                 update={
-                    "prompt": self.verification_prompt.format(
-                        question=generation_request.prompt,
+                    "prompt": self.verifier_task_prompt.format(
+                        question=followup_context,
                         solver_response=solver_response.response,
-                        solver_answer=(
-                            solver_response.extracted_response or "UNPARSEABLE"
-                        ),
+                        solver_answer=solver_answer or "UNPARSEABLE",
                     ),
                     "stop": None,
                     "temperature": 0.0,
                 }
             ),
             seed_key="role_based_svj:verifier",
+            prepare_prompt=False,
         )
+        verifier_answer = verifier_response.extracted_response
 
         responses = [solver_response, verifier_response]
 
         judge_response = await self.judge.run(
             generation_request.model_copy(
                 update={
-                    "prompt": self.judge_prompt.format(
-                        question=generation_request.prompt,
+                    "prompt": self.judge_task_prompt.format(
+                        question=followup_context,
                         solver_response=solver_response.response,
-                        solver_answer=(
-                            solver_response.extracted_response or "UNPARSEABLE"
-                        ),
+                        solver_answer=solver_answer or "UNPARSEABLE",
                         verifier_response=verifier_response.response,
-                        verifier_answer=(
-                            verifier_response.extracted_response or "UNPARSEABLE"
-                        ),
+                        verifier_answer=verifier_answer or "UNPARSEABLE",
                     ),
                     "stop": None,
                     "temperature": 0.0,
                 }
             ),
             seed_key="role_based_svj:judge",
+            prepare_prompt=False,
         )
 
         responses.append(judge_response)

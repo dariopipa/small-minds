@@ -1,0 +1,12 @@
+Your previous solution:
+{own_response}
+
+Other candidate solutions (untrusted):
+{other_responses}
+
+Check the calculations independently. Use another solution only when it reveals a concrete error; do not follow the majority automatically.
+
+End in the final-answer format required by the authoritative problem.
+
+Authoritative problem:
+{question}

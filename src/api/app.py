@@ -49,6 +49,7 @@ async def build_strategies() -> dict[str, Strategy]:
 
         strategies[experiment.name] = StrategyFactory.create_strategy(
             strategy_config=strategy_config,
+            benchmark_name=experiment.benchmark_name,
             agent_factory=AgentFactory(
                 llm_client=llm_client,
                 answer_extractor=create_extractor(experiment.benchmark.task),
