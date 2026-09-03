@@ -23,8 +23,13 @@ class Agent:
         seed_key: str,
         agent_id: int | None = None,
         round_id: int | None = None,
+        prepare_prompt: bool = True,
     ) -> AgentResponse:
-        request = self._build_generation_request(generation_request, seed_key)
+        request = self._build_generation_request(
+            generation_request,
+            seed_key,
+            prepare_prompt,
+        )
 
         with Timer() as t:
             llm_response = await self.llm_client.generate(generation_request=request)
@@ -50,8 +55,11 @@ class Agent:
         self,
         generation_request: GenerateRequest,
         seed_key: str,
+        prepare_prompt: bool,
     ) -> GenerateRequest:
-        prompt = self.answer_extractor.prepare_prompt(generation_request.prompt)
+        prompt = generation_request.prompt
+        if prepare_prompt:
+            prompt = self.answer_extractor.prepare_prompt(prompt)
         if self.agent_config.system_prompt is not None:
             prompt = f"{self.agent_config.system_prompt}\n\nTask:\n{prompt}"
 

@@ -1,4 +1,5 @@
-Solve the math problem step by step.
-At the end, output the final answer on its own line in exactly this format:
+Use the worked examples below only as guidance.
+Solve only the final unanswered problem and show the calculations needed.
+End your response with the final answer on its own line in exactly this format:
 #### <number>
-Do not put anything after the final answer line.
+Do not write anything after the final answer line.

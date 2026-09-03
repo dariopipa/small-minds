@@ -22,6 +22,16 @@ class ARCChallengeChatAnswerExtractor(AnswerExtractor):
         remaining = [value for value in stop or [] if value not in {".", "\n\n"}]
         return remaining or None
 
+    def prepare_followup_context(self, prompt: str) -> str:
+        answer_cue = "The best answer is"
+        if prompt.rstrip().endswith(answer_cue):
+            prompt = prompt.rstrip()[: -len(answer_cue)].rstrip()
+        return (
+            "Required final-answer format: `Final answer: <A, B, C, or D>` "
+            "on its own line, with nothing after it.\n\n"
+            f"{prompt}"
+        )
+
     def prepare_prompt(self, prompt: str) -> str:
         reminder = (
             "Reason concisely, check the strongest competing option, then end with "

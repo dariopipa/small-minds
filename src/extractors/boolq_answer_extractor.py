@@ -27,6 +27,14 @@ class BoolQAnswerExtractor(AnswerExtractor):
         remaining = [value for value in stop or [] if value not in newline_stops]
         return remaining or None
 
+    def prepare_followup_context(self, prompt: str) -> str:
+        prompt = re.sub(r"\bAnswer:\s*$", "", prompt.rstrip(), flags=re.IGNORECASE)
+        return (
+            "Required final-answer format: `Final answer: yes` or "
+            "`Final answer: no` on its own line, with nothing after it.\n\n"
+            f"{prompt.rstrip()}"
+        )
+
     def prepare_prompt(self, prompt: str) -> str:
         prompt = re.sub(r"\bAnswer:\s*$", "", prompt.rstrip(), flags=re.IGNORECASE)
         reminder = (
