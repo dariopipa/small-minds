@@ -21,6 +21,7 @@ EXPERIMENT_CONFIG_PATH = CONFIG_DIR / "experiments.yaml"
 
 def load_experiments(
     benchmark_name: str | None = None,
+    strategy_name: str | None = None,
 ) -> tuple[ApplicationSettings, ExperimentConfig, list[Experiment]]:
     settings = load_config(PROVIDER_CONFIG_PATH, ApplicationSettings)
     benchmarks = load_config(BENCHMARKS_CONFIG_PATH, BenchmarkConfig)
@@ -37,6 +38,18 @@ def load_experiments(
             raise ConfigurationError(
                 f"Unknown or unconfigured benchmark: {benchmark_name}. "
                 f"Available benchmarks: {available}"
+            )
+    if strategy_name is not None:
+        experiments = [
+            experiment
+            for experiment in experiments
+            if experiment.strategy_name == strategy_name
+        ]
+        if not experiments:
+            available = ", ".join(config.matrix.strategies)
+            raise ConfigurationError(
+                f"Unknown or unconfigured strategy: {strategy_name}. "
+                f"Available strategies: {available}"
             )
     return settings, config, experiments
 

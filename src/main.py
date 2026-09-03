@@ -26,6 +26,10 @@ def parse_args() -> argparse.Namespace:
         help="Run every configured strategy for one benchmark",
     )
     parser.add_argument(
+        "--strategy",
+        help="Run one configured strategy for every selected benchmark",
+    )
+    parser.add_argument(
         "--experiment-dir",
         type=Path,
         help="Create or continue an experiment in this directory",
@@ -51,6 +55,7 @@ def main() -> None:
             repetitions=args.repetitions,
             question_limit=args.limit,
             benchmark=args.benchmark,
+            strategy=args.strategy,
             experiment_dir=args.experiment_dir,
         )
     except KeyboardInterrupt:

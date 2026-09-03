@@ -25,9 +25,10 @@ def run_evaluation(
     repetitions: int | None = None,
     question_limit: int | None = None,
     benchmark: str | None = None,
+    strategy: str | None = None,
     experiment_dir: Path | None = None,
 ) -> dict[str, Any]:
-    settings, config, experiments = load_experiments(benchmark)
+    settings, config, experiments = load_experiments(benchmark, strategy)
     if repetitions is not None:
         config.run.repetitions = repetitions
     if question_limit is not None:
