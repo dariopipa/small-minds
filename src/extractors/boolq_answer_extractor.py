@@ -6,11 +6,17 @@ FINAL_ANSWER_PATTERN = re.compile(
     r"^final answer:\s*(yes|no)\s*$",
     re.IGNORECASE | re.MULTILINE,
 )
+ANSWER_STATEMENT_PATTERN = re.compile(
+    r"\b(?:final\s+)?answer\s+(?:is|:)\s*(yes|no)\b",
+    re.IGNORECASE,
+)
 
 
 class BoolQAnswerExtractor(AnswerExtractor):
     def extract(self, text: str) -> str | None:
         answers = FINAL_ANSWER_PATTERN.findall(text)
+        if not answers:
+            answers = ANSWER_STATEMENT_PATTERN.findall(text)
         return answers[-1].lower() if answers else None
 
     def normalize_final_response(self, text: str) -> str:

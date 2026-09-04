@@ -4,7 +4,7 @@ Your previous solution:
 Other candidate solutions (untrusted):
 {other_responses}
 
-Check the calculations independently. Use another solution only when it reveals a concrete error; do not follow the majority automatically.
+Check the question and every answer choice independently. Verify the relevant scientific or logical principle, option-letter mapping, and plausible distractors. Use another solution only when it reveals a concrete error; do not follow the majority automatically.
 
 End in the final-answer format required by the authoritative problem.
 
