@@ -1,6 +1,6 @@
 run:
   # Set to null to evaluate the complete benchmark split.
-  questions: 200
+  questions: null
   repetitions: 3
   repetition_seeds:
     - 74284960
@@ -30,8 +30,7 @@ strategies:
 
   role_based_svj:
     generation:
-      temperature: 0.5
-      top_p: 0.9
+      temperature: 0
 
 matrix:
   benchmarks:
