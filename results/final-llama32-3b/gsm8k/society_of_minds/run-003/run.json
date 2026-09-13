@@ -1,0 +1,180 @@
+{
+  "experiment_id": "2026-09-07_195106Z-53d88840",
+  "run_id": "2026-09-07_195106Z-53d88840:society_of_minds_gsm8k:003",
+  "started_at": "2026-09-08T02:45:24.826849+00:00",
+  "finished_at": "2026-09-08T03:35:33.560664+00:00",
+  "status": "completed",
+  "benchmark": "gsm8k",
+  "strategy": "society_of_minds",
+  "repetition": 3,
+  "question_limit": null,
+  "model": "llama3.2:3b",
+  "seed": 1153445793,
+  "sample_count": 1319,
+  "error_count": 0,
+  "model_call_count": 5610,
+  "tokens": {
+    "prompt": 4992465,
+    "output": 592847,
+    "total": 5585312
+  },
+  "model_latency_seconds": 11923.712083100647,
+  "end_to_end_latency_seconds": 11924.292029699704,
+  "provider_duration_seconds": 11886.9721093,
+  "wall_time_seconds": 3008.7358912999916,
+  "cost": null,
+  "evaluation": {
+    "results": {
+      "gsm8k": {
+        "name": "gsm8k",
+        "alias": "gsm8k",
+        "sample_len": 1319,
+        "exact_match,strict-match": 0.7361637604245641,
+        "exact_match_stderr,strict-match": "N/A",
+        "exact_match,flexible-extract": 0.7672479150871873,
+        "exact_match_stderr,flexible-extract": "N/A"
+      }
+    },
+    "group_subtasks": {},
+    "configs": {
+      "gsm8k": {
+        "task": "gsm8k",
+        "dataset_path": "openai/gsm8k",
+        "dataset_name": "main",
+        "training_split": "train",
+        "test_split": "test",
+        "fewshot_split": "train",
+        "doc_to_text": "Question: {{question}}\nAnswer:",
+        "doc_to_target": "{{answer}}",
+        "unsafe_code": false,
+        "description": "",
+        "target_delimiter": " ",
+        "fewshot_delimiter": "\n\n",
+        "fewshot_config": {
+          "sampler": "default",
+          "split": "train",
+          "process_docs": null,
+          "fewshot_indices": null,
+          "samples": null,
+          "doc_to_text": "Question: {{question}}\nAnswer:",
+          "doc_to_choice": null,
+          "doc_to_target": "{{answer}}",
+          "gen_prefix": null,
+          "fewshot_delimiter": "\n\n",
+          "target_delimiter": " "
+        },
+        "num_fewshot": 5,
+        "metric_list": [
+          {
+            "metric": "exact_match",
+            "aggregation": "mean",
+            "higher_is_better": true,
+            "ignore_case": true,
+            "ignore_punctuation": false,
+            "regexes_to_ignore": [
+              ",",
+              "\\$",
+              "(?s).*#### ",
+              "\\.$"
+            ]
+          }
+        ],
+        "output_type": "generate_until",
+        "generation_kwargs": {
+          "until": [
+            "Question:",
+            "</s>",
+            "<|im_end|>"
+          ],
+          "do_sample": false,
+          "temperature": 0.0
+        },
+        "repeats": 1,
+        "filter_list": [
+          {
+            "name": "strict-match",
+            "filter": [
+              {
+                "function": "regex",
+                "regex_pattern": "#### (\\-?[0-9\\.\\,]+)"
+              },
+              {
+                "function": "take_first"
+              }
+            ]
+          },
+          {
+            "name": "flexible-extract",
+            "filter": [
+              {
+                "function": "regex",
+                "group_select": -1,
+                "regex_pattern": "(-?[$0-9.,]{2,})|(-?[0-9]+)"
+              },
+              {
+                "function": "take_first"
+              }
+            ]
+          }
+        ],
+        "should_decontaminate": false,
+        "metadata": {
+          "version": 3.0,
+          "base_url": "http://127.0.0.1:8000/v1/completions?experiment=society_of_minds_gsm8k&repetition=3&repetition_seed=1153445793",
+          "tokenizer_backend": "none",
+          "tokenized_requests": false,
+          "eos_string": "<|im_end|>",
+          "num_concurrent": 4,
+          "timeout": 180,
+          "config_source": "C:\\Users\\dario\\Desktop\\master-thesis\\.venv\\Lib\\site-packages\\lm_eval\\tasks\\gsm8k\\gsm8k.yaml"
+        }
+      }
+    },
+    "versions": {
+      "gsm8k": 3.0
+    },
+    "n-shot": {
+      "gsm8k": 5
+    },
+    "higher_is_better": {
+      "gsm8k": {
+        "exact_match": true
+      }
+    },
+    "n-samples": {
+      "gsm8k": {
+        "original": 1319,
+        "effective": 1319
+      }
+    },
+    "config": {
+      "model": "local-completions",
+      "model_args": {
+        "base_url": "http://127.0.0.1:8000/v1/completions?experiment=society_of_minds_gsm8k&repetition=3&repetition_seed=1153445793",
+        "tokenizer_backend": "none",
+        "tokenized_requests": false,
+        "eos_string": "<|im_end|>",
+        "num_concurrent": 4,
+        "timeout": 180
+      },
+      "batch_size": 1,
+      "batch_sizes": [],
+      "device": null,
+      "use_cache": null,
+      "limit": null,
+      "bootstrap_iters": 0,
+      "gen_kwargs": null,
+      "random_seed": 0,
+      "numpy_seed": 1234,
+      "torch_seed": 1234,
+      "fewshot_seed": 1234
+    },
+    "git_hash": "9e5d397",
+    "date": 1788835524.8268495,
+    "pretty_env_info": "N/A (torch not installed)",
+    "transformers_version": "N/A",
+    "lm_eval_version": "0.4.12",
+    "upper_git_hash": null
+  },
+  "error": null
+}

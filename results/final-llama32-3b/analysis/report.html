@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiment analysis — final-llama32-3b</title>
+  <style>
+    :root { --ink:#182230; --muted:#64748b; --line:#dbe3ec; --paper:#fff;
+      --bg:#f4f7fb; --accent:#3454d1; --best:#0f9f6e; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink);
+      font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif; }
+    main { max-width:1460px; margin:auto; padding:32px 24px 64px; }
+    h1 { margin:0 0 4px; font-size:30px; }
+    h2 { margin-top:42px; padding-bottom:8px; border-bottom:2px solid var(--ink); }
+    h3 { margin-top:28px; }
+    .muted { color:var(--muted); }
+    .cards { display:grid; grid-template-columns:minmax(280px,2fr)
+      repeat(7,minmax(105px,1fr)); gap:12px; margin:22px 0; }
+    .card,.reference { min-width:0; background:var(--paper); border:1px solid var(--line);
+      border-radius:10px; padding:16px; box-shadow:0 2px 8px #1822300a; }
+    .card .value { font-size:20px; font-weight:700; margin-top:4px; }
+    .path-card .value { font-size:13px; font-weight:600; overflow-wrap:anywhere; }
+    .warning,.success { border-radius:9px; padding:14px 18px; margin:18px 0; }
+    .warning { background:#fff8e6; border:1px solid #f0cf7a; color:#5c4400; }
+    .success { background:#eafaf3; border:1px solid #9ddbc3; }
+    .warning ul { margin-bottom:0; padding-left:22px; }
+    .warning li { overflow-wrap:anywhere; }
+    .warning-summary { display:flex; gap:6px; align-items:baseline; }
+    .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:9px;
+      background:var(--paper); }
+    table { width:100%; border-collapse:collapse; table-layout:auto; font-size:13px; }
+    th,td { padding:9px 10px; border-bottom:1px solid var(--line); text-align:right;
+      vertical-align:middle; overflow-wrap:anywhere; white-space:normal; }
+    th { background:#edf2f8; font-size:11px; line-height:1.25; text-transform:uppercase;
+      letter-spacing:.03em; }
+    th:first-child,td:first-child { text-align:left; }
+    tbody tr:last-child td { border-bottom:0; }
+    .best-row { background:#eafaf3; font-weight:650; }
+    .reference { margin:18px 0; border-left:4px solid var(--accent); }
+    .reference p { margin-bottom:0; }
+    .figure-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:18px; align-items:start; }
+    .academic-figure { margin:0; min-width:0; background:var(--paper);
+      border:1px solid var(--line); border-radius:10px; overflow:hidden;
+      box-shadow:0 2px 8px #1822300a; }
+    .academic-figure > a { display:block; padding:10px; background:#fff; }
+    .academic-figure img { display:block; width:100%; height:auto; }
+    .academic-figure figcaption { padding:12px 14px 14px; border-top:1px solid var(--line);
+      color:var(--muted); font-size:12px; }
+    .academic-figure figcaption strong { color:var(--ink); font-size:13px; }
+    .figure-links { display:block; margin-top:6px; }
+    a { color:#2647bd; }
+    .footer { margin-top:40px; color:var(--muted); font-size:12px; }
+    @media(max-width:1100px) {
+      .cards { grid-template-columns:repeat(4,minmax(0,1fr)); }
+      .path-card { grid-column:span 2; }
+    }
+    @media(max-width:700px) {
+      main { padding:20px 12px; }
+      .cards { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .path-card { grid-column:span 2; }
+      th,td { padding:8px 7px; }
+      .figure-grid { grid-template-columns:1fr; }
+    }
+    @media(max-width:440px) {
+      .cards { grid-template-columns:1fr; }
+      .path-card { grid-column:auto; }
+    }
+  </style>
+</head>
+<body><main>
+  <header>
+    <h1>Experiment analysis</h1>
+    <div class="muted">final-llama32-3b · generated 2026-09-10T11:38:22.042584+00:00</div>
+  </header>
+  <div class="cards">
+    <div class="card path-card"><div class="muted">Experiment folder</div><div class="value" title="C:\Users\dario\Desktop\master-thesis\results\final-llama32-3b\analysis">analysis</div></div>
+    <div class="card"><div class="muted">Model</div><div class="value">llama3.2:3b</div></div>
+    <div class="card"><div class="muted">Benchmarks</div><div class="value">3</div></div>
+    <div class="card"><div class="muted">Strategies</div><div class="value">4</div></div>
+    <div class="card"><div class="muted">Repetitions</div><div class="value">3</div></div>
+    <div class="card"><div class="muted">Unique questions</div><div class="value">5761</div></div>
+    <div class="card"><div class="muted">Evaluated observations</div><div class="value">69132</div></div>
+    <div class="card"><div class="muted">Warnings</div><div class="value">0</div></div>
+  </div>
+  <div class="success">No data-quality warnings were found.</div>
+  <section>
+    <h2>Overall results</h2>
+    
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Model</th><th>Benchmark</th><th>Strategy</th><th>Mean accuracy</th><th>Δ vs Direct</th><th>Total wall time</th><th>Model calls</th><th>Tokens</th></tr></thead>
+    <tbody><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Direct</td><td>78.2%</td><td>+0.0 pp</td><td>38.7 min</td><td>3,516</td><td>1,458,443</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Solver-Verifier-Judge</td><td>77.8%</td><td>-0.5 pp</td><td>79.5 min</td><td>10,548</td><td>7,461,340</td></tr><tr class="best-row"><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Self-Consistency</td><td>81.3%</td><td>+3.1 pp</td><td>203.5 min</td><td>21,288</td><td>8,817,081</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Society of Minds</td><td>79.3%</td><td>+1.1 pp</td><td>132.1 min</td><td>13,944</td><td>7,512,875</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Direct</td><td>76.5%</td><td>+0.0 pp</td><td>49.5 min</td><td>9,810</td><td>3,282,352</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Solver-Verifier-Judge</td><td>74.0%</td><td>-2.5 pp</td><td>156.3 min</td><td>29,430</td><td>18,342,444</td></tr><tr class="best-row"><td>llama3.2:3b</td><td>boolq</td><td>Self-Consistency</td><td>78.6%</td><td>+2.1 pp</td><td>235.7 min</td><td>59,187</td><td>19,817,881</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Society of Minds</td><td>75.9%</td><td>-0.6 pp</td><td>171.8 min</td><td>36,144</td><td>14,144,917</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Direct</td><td>69.7%</td><td>+0.0 pp</td><td>57.0 min</td><td>3,957</td><td>4,416,542</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Solver-Verifier-Judge</td><td>73.8%</td><td>+4.1 pp</td><td>98.5 min</td><td>11,871</td><td>9,981,691</td></tr><tr class="best-row"><td>llama3.2:3b</td><td>gsm8k</td><td>Self-Consistency</td><td>74.8%</td><td>+5.1 pp</td><td>255.5 min</td><td>24,050</td><td>26,798,002</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Society of Minds</td><td>72.7%</td><td>+3.0 pp</td><td>151.8 min</td><td>16,803</td><td>16,760,754</td></tr></tbody>
+  </table>
+</div>
+    <h3>Benchmark × strategy accuracy</h3>
+    
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Model</th><th>Benchmark</th><th>Direct</th><th>Self-Consistency</th><th>Society of Minds</th><th>Solver-Verifier-Judge</th></tr></thead>
+    <tbody><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>78.2%</td><td>81.3%</td><td>79.3%</td><td>77.8%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>76.5%</td><td>78.6%</td><td>75.9%</td><td>74.0%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>69.7%</td><td>74.8%</td><td>72.7%</td><td>73.8%</td></tr></tbody>
+  </table>
+</div>
+  </section>
+  
+<section id="academic-figures">
+  <h2>Academic figures</h2>
+  <p class="muted">These plots summarize only comparisons supported by this fixed
+  experiment. Observed repetition ranges are descriptive and must not be read as
+  confidence intervals.</p>
+  <div class="figure-grid">
+<figure class="academic-figure">
+  <a href="figures/accuracy_by_strategy.pdf" title="Open the thesis-ready PDF">
+    <img src="figures/accuracy_by_strategy.svg" alt="Faceted bar chart comparing each strategy&#x27;s exact-match accuracy by benchmark." loading="lazy">
+  </a>
+  <figcaption><strong>Accuracy by strategy</strong><br>
+    Bars show mean exact-match accuracy. When an experiment has repeated runs, white points show individual repetitions and the vertical line shows their observed range.
+    <span class="figure-links">Download:
+      <a href="figures/accuracy_by_strategy.pdf">PDF</a> ·
+      <a href="figures/accuracy_by_strategy.svg">SVG</a> ·
+      <a href="figures/accuracy_by_strategy.png">PNG</a>
+    </span>
+  </figcaption>
+</figure>
+<figure class="academic-figure">
+  <a href="figures/gain_vs_direct.pdf" title="Open the thesis-ready PDF">
+    <img src="figures/gain_vs_direct.svg" alt="Faceted bar chart showing each collaborative strategy&#x27;s accuracy change from Direct." loading="lazy">
+  </a>
+  <figcaption><strong>Change from Direct</strong><br>
+    Bars show the mean paired accuracy difference from Direct. Positive values favour the strategy; white points and lines show individual repetitions and their observed range.
+    <span class="figure-links">Download:
+      <a href="figures/gain_vs_direct.pdf">PDF</a> ·
+      <a href="figures/gain_vs_direct.svg">SVG</a> ·
+      <a href="figures/gain_vs_direct.png">PNG</a>
+    </span>
+  </figcaption>
+</figure>
+<figure class="academic-figure">
+  <a href="figures/accuracy_vs_tokens.pdf" title="Open the thesis-ready PDF">
+    <img src="figures/accuracy_vs_tokens.svg" alt="Scatter plot comparing exact-match accuracy with tokens per question." loading="lazy">
+  </a>
+  <figcaption><strong>Accuracy versus token usage</strong><br>
+    Each point is one model, benchmark, and strategy. Token cost includes prompt and completion tokens; points are not connected because this is not a budget sweep.
+    <span class="figure-links">Download:
+      <a href="figures/accuracy_vs_tokens.pdf">PDF</a> ·
+      <a href="figures/accuracy_vs_tokens.svg">SVG</a> ·
+      <a href="figures/accuracy_vs_tokens.png">PNG</a>
+    </span>
+  </figcaption>
+</figure>
+<figure class="academic-figure">
+  <a href="figures/accuracy_vs_end_to_end_latency.pdf" title="Open the thesis-ready PDF">
+    <img src="figures/accuracy_vs_end_to_end_latency.svg" alt="Scatter plot comparing exact-match accuracy with end-to-end latency per question (s)." loading="lazy">
+  </a>
+  <figcaption><strong>Accuracy versus end-to-end latency</strong><br>
+    Each point is one model, benchmark, and strategy. End-to-end latency is the practical time from starting a strategy for one question until its final answer is available.
+    <span class="figure-links">Download:
+      <a href="figures/accuracy_vs_end_to_end_latency.pdf">PDF</a> ·
+      <a href="figures/accuracy_vs_end_to_end_latency.svg">SVG</a> ·
+      <a href="figures/accuracy_vs_end_to_end_latency.png">PNG</a>
+    </span>
+  </figcaption>
+</figure></div>
+</section>
+  <section>
+  <h2>llama3.2:3b — arc_challenge_chat</h2>
+  <p class="muted">Primary saved metric: exact_match with filter
+  remove_whitespace. Accuracy is averaged across repetitions; counts below
+  are repeated-run observations. </p>
+  
+<div class="reference">
+  <strong>Official reference: N/A</strong><br>
+  No verified exact model/benchmark reference is configured.
+</div>
+  <h3>Strategy detail</h3>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Unique Qs</th><th>Observations</th><th>Correct</th><th>Incorrect</th><th>Failed / unparseable</th><th>Mean accuracy</th><th>Δ vs Direct</th></tr></thead>
+    <tbody><tr class=""><td>Direct</td><td>1,172</td><td>3,516</td><td>2,750</td><td>736</td><td>30</td><td>78.2%</td><td>+0.0 pp</td></tr><tr class=""><td>Solver-Verifier-Judge</td><td>1,172</td><td>3,516</td><td>2,734</td><td>782</td><td>0</td><td>77.8%</td><td>-0.5 pp</td></tr><tr class=""><td>Self-Consistency</td><td>1,172</td><td>3,516</td><td>2,858</td><td>658</td><td>0</td><td>81.3%</td><td>+3.1 pp</td></tr><tr class=""><td>Society of Minds</td><td>1,172</td><td>3,516</td><td>2,788</td><td>727</td><td>1</td><td>79.3%</td><td>+1.1 pp</td></tr></tbody>
+  </table>
+</div>
+  <h3>Repetition variability</h3>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Strict score per repetition</th><th>Strict mean</th><th>Population std</th><th>Min</th><th>Max</th></tr></thead>
+    <tbody><tr class=""><td>Direct</td><td>R1: 78.3%, R2: 78.0%, R3: 78.3%</td><td>78.2%</td><td>0.2%</td><td>78.0%</td><td>78.3%</td></tr><tr class=""><td>Solver-Verifier-Judge</td><td>R1: 78.1%, R2: 77.6%, R3: 77.6%</td><td>77.8%</td><td>0.2%</td><td>77.6%</td><td>78.1%</td></tr><tr class=""><td>Self-Consistency</td><td>R1: 80.9%, R2: 81.7%, R3: 81.3%</td><td>81.3%</td><td>0.3%</td><td>80.9%</td><td>81.7%</td></tr><tr class=""><td>Society of Minds</td><td>R1: 78.8%, R2: 79.4%, R3: 79.6%</td><td>79.3%</td><td>0.3%</td><td>78.8%</td><td>79.6%</td></tr></tbody>
+  </table>
+</div>
+  <h3>Direct vs strategy</h3>
+  <p class="muted">Question-transition counts are averages per matched repetition,
+  so repetitions are not pooled as independent questions. Absolute improvement is
+  the accuracy-point change from Direct. Relative accuracy gain compares that change
+  with Direct accuracy; relative error reduction is the share of Direct errors removed.</p>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Direct wrong -&gt; correct</th><th>Direct correct -&gt; wrong</th><th>Correct in both</th><th>Wrong in both</th><th>Correction rate</th><th>Degradation rate</th><th>Net fixes</th></tr></thead>
+    <tbody><tr class=""><td>Solver-Verifier-Judge</td><td>89.67</td><td>95</td><td>821.67</td><td>165.67</td><td>35.1%</td><td>10.4%</td><td>-5.33</td></tr><tr class=""><td>Self-Consistency</td><td>91</td><td>55</td><td>861.67</td><td>164.33</td><td>35.6%</td><td>6.0%</td><td>36</td></tr><tr class=""><td>Society of Minds</td><td>93.67</td><td>81</td><td>835.67</td><td>161.67</td><td>36.7%</td><td>8.8%</td><td>12.67</td></tr></tbody>
+  </table>
+</div>
+  
+  <h3>Self-Consistency voting</h3>
+  <p class="muted">Agreement strength is the share of valid candidate answers in the most common vote.</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Questions</th><th>All candidates agree</th><th>Clear non-unanimous majority</th><th>Tied top vote</th><th>Average agreement strength</th><th>Agreement when final correct</th><th>Agreement when final not correct</th></tr></thead>
+    <tbody><tr class=""><td>Self-Consistency</td><td>3,516</td><td>1980/3516 (56.3%)</td><td>1514/3516 (43.1%)</td><td>22/3516 (0.6%)</td><td>86.7%</td><td>90.2%</td><td>71.3%</td></tr></tbody>
+  </table>
+</div>
+  <h3>Society of Minds answer changes</h3>
+  <p class="muted">A minority-correct answer is a correct initial answer held by fewer than half of the agents.</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Questions with revisions</th><th>Initial agreement</th><th>Final agreement</th><th>Agents changing answer</th><th>Group moves toward final answer</th><th>Minority-correct answer spreads</th></tr></thead>
+    <tbody><tr class=""><td>Society of Minds</td><td>1,132</td><td>72/1132 (6.4%)</td><td>523/1132 (46.2%)</td><td>886/3277 (27.0%)</td><td>703/1131 (62.2%)</td><td>97/345 (28.1%)</td></tr></tbody>
+  </table>
+</div>
+  <h3>Solver-Verifier-Judge behaviour</h3>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Solver correct -&gt; final correct</th><th>Solver wrong -&gt; final correct</th><th>Solver correct -&gt; final wrong</th><th>Solver wrong -&gt; final wrong</th><th>Correction rate</th><th>Damage rate</th><th>Final answer differs from Solver</th></tr></thead>
+    <tbody><tr class=""><td>Solver-Verifier-Judge</td><td>2,697</td><td>37</td><td>16</td><td>766</td><td>37/803 (4.6%)</td><td>16/2713 (0.6%)</td><td>41/3485 (1.2%)</td></tr></tbody>
+  </table>
+</div>
+  <h3>Efficiency</h3>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Calls / Q</th><th>Prompt tokens / Q</th><th>Completion tokens / Q</th><th>Tokens / Q</th><th>End-to-end latency / Q</th><th>Ollama duration / Q</th></tr></thead>
+    <tbody><tr class=""><td>Direct</td><td>1</td><td>263.3</td><td>151.5</td><td>414.8</td><td>2.47 s</td><td>2.46 s</td></tr><tr class=""><td>Solver-Verifier-Judge</td><td>3</td><td>1,889.4</td><td>232.7</td><td>2,122.1</td><td>5.31 s</td><td>5.29 s</td></tr><tr class=""><td>Self-Consistency</td><td>6.05</td><td>1,594.3</td><td>913.4</td><td>2,507.7</td><td>13.79 s</td><td>13.76 s</td></tr><tr class=""><td>Society of Minds</td><td>3.97</td><td>1,621.5</td><td>515.2</td><td>2,136.8</td><td>8.85 s</td><td>8.82 s</td></tr></tbody>
+  </table>
+</div>
+  <h3>Efficiency trade-offs vs Direct</h3>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Direct accuracy</th><th>Strategy accuracy</th><th>Absolute improvement</th><th>Relative accuracy gain</th><th>Relative error reduction</th><th>Δ calls / Q</th><th>Δ tokens / Q</th><th>Δ end-to-end latency / Q</th><th>Δ Ollama duration / Q</th></tr></thead>
+    <tbody><tr class=""><td>Solver-Verifier-Judge</td><td>78.2%</td><td>77.8%</td><td>-0.5 pp</td><td>-0.58%</td><td>-2.09%</td><td>2</td><td>1,707.3</td><td>2.84 s</td><td>2.83 s</td></tr><tr class=""><td>Self-Consistency</td><td>78.2%</td><td>81.3%</td><td>+3.1 pp</td><td>+3.93%</td><td>+14.10%</td><td>5.05</td><td>2,092.9</td><td>11.32 s</td><td>11.29 s</td></tr><tr class=""><td>Society of Minds</td><td>78.2%</td><td>79.3%</td><td>+1.1 pp</td><td>+1.38%</td><td>+4.96%</td><td>2.97</td><td>1,722.0</td><td>6.38 s</td><td>6.36 s</td></tr></tbody>
+  </table>
+</div>
+</section>
+<section>
+  <h2>llama3.2:3b — boolq</h2>
+  <p class="muted">Primary saved metric: exact_match with filter
+  none. Accuracy is averaged across repetitions; counts below
+  are repeated-run observations. </p>
+  
+<div class="reference">
+  <strong>Official reference: N/A</strong><br>
+  No verified exact model/benchmark reference is configured.
+</div>
+  <h3>Strategy detail</h3>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Unique Qs</th><th>Observations</th><th>Correct</th><th>Incorrect</th><th>Failed / unparseable</th><th>Mean accuracy</th><th>Δ vs Direct</th></tr></thead>
+    <tbody><tr class=""><td>Direct</td><td>3,270</td><td>9,810</td><td>7,506</td><td>2,134</td><td>170</td><td>76.5%</td><td>+0.0 pp</td></tr><tr class=""><td>Solver-Verifier-Judge</td><td>3,270</td><td>9,810</td><td>7,262</td><td>2,548</td><td>0</td><td>74.0%</td><td>-2.5 pp</td></tr><tr class=""><td>Self-Consistency</td><td>3,270</td><td>9,810</td><td>7,710</td><td>2,094</td><td>6</td><td>78.6%</td><td>+2.1 pp</td></tr><tr class=""><td>Society of Minds</td><td>3,270</td><td>9,810</td><td>7,445</td><td>2,365</td><td>0</td><td>75.9%</td><td>-0.6 pp</td></tr></tbody>
+  </table>
+</div>
+  <h3>Repetition variability</h3>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Strict score per repetition</th><th>Strict mean</th><th>Population std</th><th>Min</th><th>Max</th></tr></thead>
+    <tbody><tr class=""><td>Direct</td><td>R1: 76.5%, R2: 76.7%, R3: 76.4%</td><td>76.5%</td><td>0.1%</td><td>76.4%</td><td>76.7%</td></tr><tr class=""><td>Solver-Verifier-Judge</td><td>R1: 74.3%, R2: 73.8%, R3: 74.0%</td><td>74.0%</td><td>0.2%</td><td>73.8%</td><td>74.3%</td></tr><tr class=""><td>Self-Consistency</td><td>R1: 78.7%, R2: 78.6%, R3: 78.5%</td><td>78.6%</td><td>0.0%</td><td>78.5%</td><td>78.7%</td></tr><tr class=""><td>Society of Minds</td><td>R1: 75.7%, R2: 76.0%, R3: 75.9%</td><td>75.9%</td><td>0.1%</td><td>75.7%</td><td>76.0%</td></tr></tbody>
+  </table>
+</div>
+  <h3>Direct vs strategy</h3>
+  <p class="muted">Question-transition counts are averages per matched repetition,
+  so repetitions are not pooled as independent questions. Absolute improvement is
+  the accuracy-point change from Direct. Relative accuracy gain compares that change
+  with Direct accuracy; relative error reduction is the share of Direct errors removed.</p>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Direct wrong -&gt; correct</th><th>Direct correct -&gt; wrong</th><th>Correct in both</th><th>Wrong in both</th><th>Correction rate</th><th>Degradation rate</th><th>Net fixes</th></tr></thead>
+    <tbody><tr class=""><td>Solver-Verifier-Judge</td><td>179</td><td>260.33</td><td>2,241.67</td><td>589</td><td>23.3%</td><td>10.4%</td><td>-81.33</td></tr><tr class=""><td>Self-Consistency</td><td>164</td><td>96</td><td>2,406</td><td>604</td><td>21.4%</td><td>3.8%</td><td>68</td></tr><tr class=""><td>Society of Minds</td><td>168</td><td>188.33</td><td>2,313.67</td><td>600</td><td>21.9%</td><td>7.5%</td><td>-20.33</td></tr></tbody>
+  </table>
+</div>
+  
+  <h3>Self-Consistency voting</h3>
+  <p class="muted">Agreement strength is the share of valid candidate answers in the most common vote.</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Questions</th><th>All candidates agree</th><th>Clear non-unanimous majority</th><th>Tied top vote</th><th>Average agreement strength</th><th>Agreement when final correct</th><th>Agreement when final not correct</th></tr></thead>
+    <tbody><tr class=""><td>Self-Consistency</td><td>9,804</td><td>7436/9804 (75.8%)</td><td>2361/9804 (24.1%)</td><td>7/9804 (0.1%)</td><td>93.7%</td><td>95.4%</td><td>87.2%</td></tr></tbody>
+  </table>
+</div>
+  <h3>Society of Minds answer changes</h3>
+  <p class="muted">A minority-correct answer is a correct initial answer held by fewer than half of the agents.</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Questions with revisions</th><th>Initial agreement</th><th>Final agreement</th><th>Agents changing answer</th><th>Group moves toward final answer</th><th>Minority-correct answer spreads</th></tr></thead>
+    <tbody><tr class=""><td>Society of Minds</td><td>2,238</td><td>692/2238 (30.9%)</td><td>975/2238 (43.6%)</td><td>1060/5768 (18.4%)</td><td>1370/2238 (61.2%)</td><td>151/652 (23.2%)</td></tr></tbody>
+  </table>
+</div>
+  <h3>Solver-Verifier-Judge behaviour</h3>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Solver correct -&gt; final correct</th><th>Solver wrong -&gt; final correct</th><th>Solver correct -&gt; final wrong</th><th>Solver wrong -&gt; final wrong</th><th>Correction rate</th><th>Damage rate</th><th>Final answer differs from Solver</th></tr></thead>
+    <tbody><tr class=""><td>Solver-Verifier-Judge</td><td>6,684</td><td>578</td><td>184</td><td>2,364</td><td>578/2942 (19.6%)</td><td>184/6868 (2.7%)</td><td>212/9162 (2.3%)</td></tr></tbody>
+  </table>
+</div>
+  <h3>Efficiency</h3>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Calls / Q</th><th>Prompt tokens / Q</th><th>Completion tokens / Q</th><th>Tokens / Q</th><th>End-to-end latency / Q</th><th>Ollama duration / Q</th></tr></thead>
+    <tbody><tr class=""><td>Direct</td><td>1</td><td>277.6</td><td>57.0</td><td>334.6</td><td>1.14 s</td><td>1.13 s</td></tr><tr class=""><td>Solver-Verifier-Judge</td><td>3</td><td>1,743.9</td><td>125.9</td><td>1,869.8</td><td>3.70 s</td><td>3.68 s</td></tr><tr class=""><td>Self-Consistency</td><td>6.03</td><td>1,674.9</td><td>345.3</td><td>2,020.2</td><td>5.73 s</td><td>5.70 s</td></tr><tr class=""><td>Society of Minds</td><td>3.68</td><td>1,225.3</td><td>216.5</td><td>1,441.9</td><td>4.10 s</td><td>4.07 s</td></tr></tbody>
+  </table>
+</div>
+  <h3>Efficiency trade-offs vs Direct</h3>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Direct accuracy</th><th>Strategy accuracy</th><th>Absolute improvement</th><th>Relative accuracy gain</th><th>Relative error reduction</th><th>Δ calls / Q</th><th>Δ tokens / Q</th><th>Δ end-to-end latency / Q</th><th>Δ Ollama duration / Q</th></tr></thead>
+    <tbody><tr class=""><td>Solver-Verifier-Judge</td><td>76.5%</td><td>74.0%</td><td>-2.5 pp</td><td>-3.25%</td><td>-10.59%</td><td>2</td><td>1,535.2</td><td>2.57 s</td><td>2.55 s</td></tr><tr class=""><td>Self-Consistency</td><td>76.5%</td><td>78.6%</td><td>+2.1 pp</td><td>+2.72%</td><td>+8.85%</td><td>5.03</td><td>1,685.6</td><td>4.60 s</td><td>4.57 s</td></tr><tr class=""><td>Society of Minds</td><td>76.5%</td><td>75.9%</td><td>-0.6 pp</td><td>-0.81%</td><td>-2.65%</td><td>2.68</td><td>1,107.3</td><td>2.96 s</td><td>2.94 s</td></tr></tbody>
+  </table>
+</div>
+</section>
+<section>
+  <h2>llama3.2:3b — gsm8k</h2>
+  <p class="muted">Primary saved metric: exact_match with filter
+  strict-match. Accuracy is averaged across repetitions; counts below
+  are repeated-run observations. GSM8K also shows flexible extraction as a diagnostic; the strict saved metric remains the primary result.</p>
+  
+<div class="reference">
+  <strong>Official reference: 77.7%</strong>
+  — Llama 3.2 3B Instruct (BF16) on GSM8K (CoT, 8-shot)
+  (em_maj1@1).<br>
+  <a href="https://github.com/meta-llama/llama-models/blob/0e0b8c519242d5833d8c11bffc1232b77ad7f301/models/llama3_2/MODEL_CARD.md#instruction-tuned-models">Official score source</a> ·
+  <a href="https://ollama.com/library/llama3.2/tags">Ollama model identity source</a>
+  <p>Official BF16 instruction-model reference. This experiment uses Ollama&#x27;s Q4_K_M artifact and lm-eval&#x27;s 5-shot GSM8K task with project-specific prompting and answer extraction, so the scores are not directly comparable. Meta does not publish a score for this exact Ollama quantization and protocol.</p>
+</div>
+  <h3>Strategy detail</h3>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Unique Qs</th><th>Observations</th><th>Correct</th><th>Incorrect</th><th>Failed / unparseable</th><th>Mean accuracy</th><th>Flexible accuracy (diagnostic)</th><th>Δ vs Direct</th></tr></thead>
+    <tbody><tr class=""><td>Direct</td><td>1,319</td><td>3,957</td><td>2,757</td><td>898</td><td>302</td><td>69.7%</td><td>74.1%</td><td>+0.0 pp</td></tr><tr class=""><td>Solver-Verifier-Judge</td><td>1,319</td><td>3,957</td><td>2,920</td><td>1,037</td><td>0</td><td>73.8%</td><td>73.7%</td><td>+4.1 pp</td></tr><tr class=""><td>Self-Consistency</td><td>1,319</td><td>3,957</td><td>2,958</td><td>641</td><td>358</td><td>74.8%</td><td>80.9%</td><td>+5.1 pp</td></tr><tr class=""><td>Society of Minds</td><td>1,319</td><td>3,957</td><td>2,877</td><td>928</td><td>152</td><td>72.7%</td><td>76.3%</td><td>+3.0 pp</td></tr></tbody>
+  </table>
+</div>
+  <h3>Repetition variability</h3>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Strict score per repetition</th><th>Flexible score per repetition (diagnostic)</th><th>Strict mean</th><th>Flexible mean (diagnostic)</th><th>Population std</th><th>Min</th><th>Max</th></tr></thead>
+    <tbody><tr class=""><td>Direct</td><td>R1: 69.5%, R2: 70.2%, R3: 69.3%</td><td>R1: 74.1%, R2: 74.5%, R3: 73.8%</td><td>69.7%</td><td>74.1%</td><td>0.4%</td><td>69.3%</td><td>70.2%</td></tr><tr class=""><td>Solver-Verifier-Judge</td><td>R1: 74.1%, R2: 73.5%, R3: 73.8%</td><td>R1: 74.1%, R2: 73.4%, R3: 73.7%</td><td>73.8%</td><td>73.7%</td><td>0.3%</td><td>73.5%</td><td>74.1%</td></tr><tr class=""><td>Self-Consistency</td><td>R1: 75.1%, R2: 74.5%, R3: 74.7%</td><td>R1: 81.1%, R2: 81.0%, R3: 80.5%</td><td>74.8%</td><td>80.9%</td><td>0.2%</td><td>74.5%</td><td>75.1%</td></tr><tr class=""><td>Society of Minds</td><td>R1: 73.1%, R2: 71.4%, R3: 73.6%</td><td>R1: 76.6%, R2: 75.6%, R3: 76.7%</td><td>72.7%</td><td>76.3%</td><td>0.9%</td><td>71.4%</td><td>73.6%</td></tr></tbody>
+  </table>
+</div>
+  <h3>Direct vs strategy</h3>
+  <p class="muted">Question-transition counts are averages per matched repetition,
+  so repetitions are not pooled as independent questions. Absolute improvement is
+  the accuracy-point change from Direct. Relative accuracy gain compares that change
+  with Direct accuracy; relative error reduction is the share of Direct errors removed.</p>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Direct wrong -&gt; correct</th><th>Direct correct -&gt; wrong</th><th>Correct in both</th><th>Wrong in both</th><th>Correction rate</th><th>Degradation rate</th><th>Net fixes</th></tr></thead>
+    <tbody><tr class=""><td>Solver-Verifier-Judge</td><td>142</td><td>87.67</td><td>831.33</td><td>258</td><td>35.5%</td><td>9.5%</td><td>54.33</td></tr><tr class=""><td>Self-Consistency</td><td>152.67</td><td>85.67</td><td>833.33</td><td>247.33</td><td>38.2%</td><td>9.3%</td><td>67.00</td></tr><tr class=""><td>Society of Minds</td><td>153</td><td>113</td><td>806</td><td>247</td><td>38.2%</td><td>12.3%</td><td>40</td></tr></tbody>
+  </table>
+</div>
+  
+  <h3>Self-Consistency voting</h3>
+  <p class="muted">Agreement strength is the share of valid candidate answers in the most common vote.</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Questions</th><th>All candidates agree</th><th>Clear non-unanimous majority</th><th>Tied top vote</th><th>Average agreement strength</th><th>Agreement when final correct</th><th>Agreement when final not correct</th></tr></thead>
+    <tbody><tr class=""><td>Self-Consistency</td><td>3,957</td><td>1933/3957 (48.9%)</td><td>1892/3957 (47.8%)</td><td>132/3957 (3.3%)</td><td>79.6%</td><td>86.5%</td><td>59.3%</td></tr></tbody>
+  </table>
+</div>
+  <h3>Society of Minds answer changes</h3>
+  <p class="muted">A minority-correct answer is a correct initial answer held by fewer than half of the agents.</p>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Questions with revisions</th><th>Initial agreement</th><th>Final agreement</th><th>Agents changing answer</th><th>Group moves toward final answer</th><th>Minority-correct answer spreads</th></tr></thead>
+    <tbody><tr class=""><td>Society of Minds</td><td>1,644</td><td>0/1644 (0.0%)</td><td>396/1644 (24.1%)</td><td>1000/4930 (20.3%)</td><td>727/1644 (44.2%)</td><td>114/507 (22.5%)</td></tr></tbody>
+  </table>
+</div>
+  <h3>Solver-Verifier-Judge behaviour</h3>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Solver correct -&gt; final correct</th><th>Solver wrong -&gt; final correct</th><th>Solver correct -&gt; final wrong</th><th>Solver wrong -&gt; final wrong</th><th>Correction rate</th><th>Damage rate</th><th>Final answer differs from Solver</th></tr></thead>
+    <tbody><tr class=""><td>Solver-Verifier-Judge</td><td>2,906</td><td>14</td><td>30</td><td>1,007</td><td>14/1021 (1.4%)</td><td>30/2936 (1.0%)</td><td>129/3957 (3.3%)</td></tr></tbody>
+  </table>
+</div>
+  <h3>Efficiency</h3>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Calls / Q</th><th>Prompt tokens / Q</th><th>Completion tokens / Q</th><th>Tokens / Q</th><th>End-to-end latency / Q</th><th>Ollama duration / Q</th></tr></thead>
+    <tbody><tr class=""><td>Direct</td><td>1</td><td>964.2</td><td>151.9</td><td>1,116.1</td><td>3.31 s</td><td>3.30 s</td></tr><tr class=""><td>Solver-Verifier-Judge</td><td>3</td><td>2,302.2</td><td>220.3</td><td>2,522.5</td><td>5.90 s</td><td>5.88 s</td></tr><tr class=""><td>Self-Consistency</td><td>6.08</td><td>5,861.0</td><td>911.3</td><td>6,772.3</td><td>15.30 s</td><td>15.26 s</td></tr><tr class=""><td>Society of Minds</td><td>4.25</td><td>3,784.9</td><td>450.9</td><td>4,235.7</td><td>9.05 s</td><td>9.03 s</td></tr></tbody>
+  </table>
+</div>
+  <h3>Efficiency trade-offs vs Direct</h3>
+  
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Strategy</th><th>Direct accuracy</th><th>Strategy accuracy</th><th>Absolute improvement</th><th>Relative accuracy gain</th><th>Relative error reduction</th><th>Δ calls / Q</th><th>Δ tokens / Q</th><th>Δ end-to-end latency / Q</th><th>Δ Ollama duration / Q</th></tr></thead>
+    <tbody><tr class=""><td>Solver-Verifier-Judge</td><td>69.7%</td><td>73.8%</td><td>+4.1 pp</td><td>+5.91%</td><td>+13.58%</td><td>2</td><td>1,406.4</td><td>2.59 s</td><td>2.58 s</td></tr><tr class=""><td>Self-Consistency</td><td>69.7%</td><td>74.8%</td><td>+5.1 pp</td><td>+7.29%</td><td>+16.75%</td><td>5.08</td><td>5,656.2</td><td>11.99 s</td><td>11.96 s</td></tr><tr class=""><td>Society of Minds</td><td>69.7%</td><td>72.7%</td><td>+3.0 pp</td><td>+4.35%</td><td>+10.00%</td><td>3.25</td><td>3,119.6</td><td>5.75 s</td><td>5.72 s</td></tr></tbody>
+  </table>
+</div>
+</section>
+
+  <section id="data-quality">
+    <h2>Data quality</h2>
+    <p class="muted">The primary benchmark metric is authoritative. Failed or
+    unparseable samples remain in its denominator and therefore score zero.</p>
+    
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Model</th><th>Benchmark</th><th>Strategy</th><th>Repetition</th><th>Status</th><th>Evaluated</th><th>Failed</th><th>Unparseable</th><th>Score</th></tr></thead>
+    <tbody><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Direct</td><td>1</td><td>completed</td><td>1,172</td><td>0</td><td>9</td><td>78.3%</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Direct</td><td>2</td><td>completed</td><td>1,172</td><td>0</td><td>9</td><td>78.0%</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Direct</td><td>3</td><td>completed</td><td>1,172</td><td>0</td><td>12</td><td>78.3%</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Solver-Verifier-Judge</td><td>1</td><td>completed</td><td>1,172</td><td>0</td><td>0</td><td>78.1%</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Solver-Verifier-Judge</td><td>2</td><td>completed</td><td>1,172</td><td>0</td><td>0</td><td>77.6%</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Solver-Verifier-Judge</td><td>3</td><td>completed</td><td>1,172</td><td>0</td><td>0</td><td>77.6%</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Self-Consistency</td><td>1</td><td>completed</td><td>1,172</td><td>0</td><td>0</td><td>80.9%</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Self-Consistency</td><td>2</td><td>completed</td><td>1,172</td><td>0</td><td>0</td><td>81.7%</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Self-Consistency</td><td>3</td><td>completed</td><td>1,172</td><td>0</td><td>0</td><td>81.3%</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Society of Minds</td><td>1</td><td>completed</td><td>1,172</td><td>0</td><td>1</td><td>78.8%</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Society of Minds</td><td>2</td><td>completed</td><td>1,172</td><td>0</td><td>0</td><td>79.4%</td></tr><tr class=""><td>llama3.2:3b</td><td>arc_challenge_chat</td><td>Society of Minds</td><td>3</td><td>completed</td><td>1,172</td><td>0</td><td>0</td><td>79.6%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Direct</td><td>1</td><td>completed</td><td>3,270</td><td>0</td><td>58</td><td>76.5%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Direct</td><td>2</td><td>completed</td><td>3,270</td><td>0</td><td>51</td><td>76.7%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Direct</td><td>3</td><td>completed</td><td>3,270</td><td>0</td><td>61</td><td>76.4%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Solver-Verifier-Judge</td><td>1</td><td>completed</td><td>3,270</td><td>0</td><td>0</td><td>74.3%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Solver-Verifier-Judge</td><td>2</td><td>completed</td><td>3,270</td><td>0</td><td>0</td><td>73.8%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Solver-Verifier-Judge</td><td>3</td><td>completed</td><td>3,270</td><td>0</td><td>0</td><td>74.0%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Self-Consistency</td><td>1</td><td>completed</td><td>3,270</td><td>0</td><td>1</td><td>78.7%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Self-Consistency</td><td>2</td><td>completed</td><td>3,270</td><td>0</td><td>3</td><td>78.6%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Self-Consistency</td><td>3</td><td>completed</td><td>3,270</td><td>0</td><td>2</td><td>78.5%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Society of Minds</td><td>1</td><td>completed</td><td>3,270</td><td>0</td><td>0</td><td>75.7%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Society of Minds</td><td>2</td><td>completed</td><td>3,270</td><td>0</td><td>0</td><td>76.0%</td></tr><tr class=""><td>llama3.2:3b</td><td>boolq</td><td>Society of Minds</td><td>3</td><td>completed</td><td>3,270</td><td>0</td><td>0</td><td>75.9%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Direct</td><td>1</td><td>completed</td><td>1,319</td><td>0</td><td>102</td><td>69.5%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Direct</td><td>2</td><td>completed</td><td>1,319</td><td>0</td><td>101</td><td>70.2%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Direct</td><td>3</td><td>completed</td><td>1,319</td><td>0</td><td>99</td><td>69.3%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Solver-Verifier-Judge</td><td>1</td><td>completed</td><td>1,319</td><td>0</td><td>0</td><td>74.1%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Solver-Verifier-Judge</td><td>2</td><td>completed</td><td>1,319</td><td>0</td><td>0</td><td>73.5%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Solver-Verifier-Judge</td><td>3</td><td>completed</td><td>1,319</td><td>0</td><td>0</td><td>73.8%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Self-Consistency</td><td>1</td><td>completed</td><td>1,319</td><td>0</td><td>120</td><td>75.1%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Self-Consistency</td><td>2</td><td>completed</td><td>1,319</td><td>0</td><td>118</td><td>74.5%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Self-Consistency</td><td>3</td><td>completed</td><td>1,319</td><td>0</td><td>120</td><td>74.7%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Society of Minds</td><td>1</td><td>completed</td><td>1,319</td><td>0</td><td>52</td><td>73.1%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Society of Minds</td><td>2</td><td>completed</td><td>1,319</td><td>0</td><td>54</td><td>71.4%</td></tr><tr class=""><td>llama3.2:3b</td><td>gsm8k</td><td>Society of Minds</td><td>3</td><td>completed</td><td>1,319</td><td>0</td><td>46</td><td>73.6%</td></tr></tbody>
+  </table>
+</div>
+    <div class="success">No data-quality warnings were found.</div>
+  </section>
+  <div class="footer">Static report generated by analysis.py. Repetition means are
+  calculated per run; repeated runs are not pooled into a larger benchmark sample.
+  P95 uses the nearest-rank method. Cost is shown only when stored as a real numeric value.</div>
+</main></body>
+</html>
