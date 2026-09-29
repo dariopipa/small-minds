@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import math
@@ -12,9 +13,11 @@ from pathlib import Path
 from string import Template
 from typing import Any
 
+import numpy as np
+import scipy  # type: ignore[import-untyped]
 import statsmodels  # type: ignore[import-untyped]
+from scipy.stats import bootstrap  # type: ignore[import-untyped]
 from statsmodels.stats.contingency_tables import mcnemar  # type: ignore[import-untyped]
-from statsmodels.stats.multitest import multipletests  # type: ignore[import-untyped]
 
 from analysis_behavior import calculate_strategy_behavior
 from analysis_plots import (
@@ -566,8 +569,60 @@ def compare_strategies(groups: list[Group]) -> list[Comparison]:
     return comparisons
 
 
+def paired_accuracy_difference(
+    direct: np.ndarray, strategy: np.ndarray, axis: int = -1
+) -> np.ndarray:
+    """Accuracy difference in percentage points, retaining question pairs."""
+    return 100 * (np.mean(strategy, axis=axis) - np.mean(direct, axis=axis))
+
+
+def paired_confidence_interval(
+    direct: np.ndarray,
+    strategy: np.ndarray,
+    identity: tuple[str, str, str, int],
+) -> dict[str, Any]:
+    """Return a reproducible 95% BCa interval for one paired comparison."""
+    differences = strategy - direct
+    if differences.size < 2 or np.all(differences == differences[0]):
+        raise AnalysisError(
+            f"Cannot estimate a BCa interval for constant paired differences: {identity}"
+        )
+    seed = int.from_bytes(
+        hashlib.sha256(json.dumps(identity, separators=(",", ":")).encode()).digest()[
+            :8
+        ],
+        "little",
+    )
+    result = bootstrap(
+        (direct, strategy),
+        paired_accuracy_difference,
+        paired=True,
+        vectorized=True,
+        n_resamples=20_000,
+        batch=256,
+        confidence_level=0.95,
+        method="BCa",
+        rng=np.random.default_rng(seed),
+    )
+    low, high = (
+        float(result.confidence_interval.low),
+        float(result.confidence_interval.high),
+    )
+    if not (math.isfinite(low) and math.isfinite(high) and low <= high):
+        raise AnalysisError(f"Invalid paired BCa confidence interval: {identity}")
+    return {
+        "ci95_low_pp": low,
+        "ci95_high_pp": high,
+        "ci_seed": seed,
+        "ci_method": "BCa",
+        "ci_resamples": 20_000,
+        "ci_level": 0.95,
+        "ci_excludes_zero": low > 0 or high < 0,
+    }
+
+
 def calculate_mcnemar(runs: list[Run], warnings: list[str]) -> dict[str, Any]:
-    """Test complete question pairs within each repetition, then correct one family."""
+    """Compare complete question pairs separately within each repetition."""
     lookup = {
         (run.model, run.benchmark, run.repetition, run.strategy): run for run in runs
     }
@@ -641,6 +696,18 @@ def calculate_mcnemar(runs: list[Run], warnings: list[str]) -> dict[str, Any]:
                         result = mcnemar(
                             [[both_correct, losses], [gains, both_wrong]], exact=True
                         )
+                        question_ids = sorted(direct_samples)
+                        interval = paired_confidence_interval(
+                            np.array(
+                                [direct_samples[q].metric for q in question_ids],
+                                dtype=np.int8,
+                            ),
+                            np.array(
+                                [other_samples[q].metric for q in question_ids],
+                                dtype=np.int8,
+                            ),
+                            (model, benchmark, strategy, repetition),
+                        )
                         tests.append(
                             {
                                 **identity,
@@ -654,6 +721,7 @@ def calculate_mcnemar(runs: list[Run], warnings: list[str]) -> dict[str, Any]:
                                 * (gains - losses)
                                 / len(direct_samples),
                                 "p_raw": float(result.pvalue),
+                                **interval,
                             }
                         )
             if reason is not None:
@@ -663,29 +731,29 @@ def calculate_mcnemar(runs: list[Run], warnings: list[str]) -> dict[str, Any]:
                     f"repetition {repetition}: {reason}"
                 )
 
-    if tests:
-        rejected, adjusted, _, _ = multipletests(
-            [test["p_raw"] for test in tests], alpha=0.05, method="holm"
+    for test in tests:
+        significant = test["p_raw"] <= 0.05
+        test["significant"] = significant
+        test["outcome"] = (
+            "Significant increase"
+            if significant and test["accuracy_difference_pp"] > 0
+            else "Significant decrease"
+            if significant
+            else "Not significant"
         )
-        for test, significant, p_adjusted in zip(
-            tests, rejected, adjusted, strict=True
-        ):
-            test["p_holm"] = float(p_adjusted)
-            test["significant"] = bool(significant)
-            test["outcome"] = (
-                "Significant increase"
-                if significant and test["accuracy_difference_pp"] > 0
-                else "Significant decrease"
-                if significant
-                else "Not significant"
-            )
     return {
         "method": "Two-sided exact McNemar test",
-        "correction": "Holm",
+        "correction": None,
         "alpha": 0.05,
         "library": f"statsmodels {statsmodels.__version__}",
-        "family_scope": "All valid strategy-versus-Direct comparisons in this report",
-        "family_size": len(tests),
+        "confidence_interval": {
+            "method": "Paired BCa bootstrap",
+            "confidence_level": 0.95,
+            "resamples": 20_000,
+            "library": f"SciPy {scipy.__version__}",
+            "scope": "Individual comparison within each repetition; no multiple-comparison adjustment",
+        },
+        "comparison_count": len(tests),
         "summary": dict(Counter(test["outcome"] for test in tests)),
         "tests": tests,
         "skipped": skipped,
@@ -875,7 +943,16 @@ def render_mcnemar_section(data: dict[str, Any]) -> str:
             ]
         )
     details = render_table(
-        ["Model", "Benchmark", "Strategy", "Run", "Gain vs Direct", "Holm p", "Result"],
+        [
+            "Model",
+            "Benchmark",
+            "Strategy",
+            "Run",
+            "Gain vs Direct",
+            "95% CI",
+            "McNemar p",
+            "McNemar result",
+        ],
         [
             [
                 escape(MODEL_LABELS.get(t["model"], t["model"])),
@@ -883,7 +960,8 @@ def render_mcnemar_section(data: dict[str, Any]) -> str:
                 escape(STRATEGY_LABELS.get(t["strategy"], t["strategy"])),
                 str(t["repetition"]),
                 f"{t['accuracy_difference_pp']:+.2f} pp",
-                f"{t['p_holm']:.4g}",
+                f"[{t['ci95_low_pp']:+.2f}, {t['ci95_high_pp']:+.2f}] pp",
+                f"{t['p_raw']:.4g}",
                 escape(t["outcome"]),
             ]
             for t in tests
@@ -898,16 +976,18 @@ def render_mcnemar_section(data: dict[str, Any]) -> str:
         ],
     )
     summary = (
-        f"{len(tests)} paired tests: {counts.get('Significant increase', 0)} significant increases, "
+        f"{len(tests)} paired comparisons. Exact McNemar tests show {counts.get('Significant increase', 0)} significant increases, "
         f"{counts.get('Significant decrease', 0)} decreases, {counts.get('Not significant', 0)} not significant."
     )
     return f"""<section id="statistical-comparison"><h2>Statistical comparison with Direct</h2>
       <p>{summary}</p>
-      <p class="muted">Exact McNemar, one test per repetition; Holm correction across these {data["family_size"]} tests
-      at {data["alpha"]:g}. This tests individual runs, not the mean across repetitions. {len(data["skipped"])} comparisons skipped.</p>
+      <p class="muted">We calculate a 95% confidence interval for each accuracy difference using a paired BCa bootstrap with 20,000 resamples.
+      Questions are resampled with the two strategies' outcomes kept together. McNemar p-values use a {data["alpha"]:g} significance threshold.
+      These intervals and tests describe individual comparisons within each repetition, not the mean across repetitions.
+      No adjustment is applied across the {data["comparison_count"]} comparisons. {len(data["skipped"])} comparisons skipped.</p>
       {render_table(["Strategy", "Significant increase", "Significant decrease", "Not significant"], overview)}
-      <details><summary>Paired results and adjusted p-values</summary>{details}</details>
-      <p><a href="aggregates.json">Analysis data, including test counts and p-values (JSON)</a></p></section>"""
+      <details><summary>Paired results, confidence intervals and p-values</summary>{details}</details>
+      <p><a href="aggregates.json">Analysis data, including paired counts, confidence intervals and p-values (JSON)</a></p></section>"""
 
 
 def summarize_findings(
@@ -1416,7 +1496,7 @@ def main() -> int:
     print(f"Figures: {output_dir / 'figures'} ({len(figure_artifacts)})")
     print(f"Warnings: {len(warnings)}")
     print(
-        f"McNemar: {len(tests)} tests (one Holm family), {len(statistical_comparison['skipped'])} skipped"
+        f"Paired comparisons: {len(tests)} exact McNemar tests with 95% BCa confidence intervals, {len(statistical_comparison['skipped'])} skipped"
     )
     return 0
 

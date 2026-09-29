@@ -12,7 +12,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
-from matplotlib.patches import Patch, Rectangle
+from matplotlib.patches import Patch
 from matplotlib.ticker import MaxNLocator
 
 STRATEGY_ORDER = ("direct", "self_consistency", "society_of_minds", "role_based_svj")
@@ -392,94 +392,78 @@ def _plot_mcnemar(
     strategies = _ordered({item["strategy"] for item in comparisons}, STRATEGY_ORDER)
     repetitions = sorted({item["repetition"] for item in comparisons})
     rows = [
-        (benchmark, strategy) for benchmark in benchmarks for strategy in strategies
+        (strategy, repetition) for strategy in strategies for repetition in repetitions
     ]
     lookup = {
         (item["model"], item["benchmark"], item["strategy"], item["repetition"]): item
         for item in tests
     }
-    colors = {
-        "Increase": "#BFE4D8",
-        "Decrease": "#F2CBBA",
-        "Not significant": "#E9EDF2",
-    }
     figure, axes = plt.subplots(
-        1,
+        len(benchmarks),
         len(models),
-        figsize=(5.1 * len(models), max(3.5, len(rows) * 0.43 + 1.4)),
+        figsize=(5.1 * len(models), max(2.8, len(rows) * 0.27 + 0.8) * len(benchmarks)),
         squeeze=False,
+        sharex="row",
         layout="constrained",
     )
-    missing = False
-    for model, axis in zip(models, axes[0], strict=True):
-        for row_index, (benchmark, strategy) in enumerate(rows):
-            for column_index, repetition in enumerate(repetitions):
+    for benchmark_index, benchmark in enumerate(benchmarks):
+        for model_index, model in enumerate(models):
+            axis = axes[benchmark_index, model_index]
+            axis.axvline(0, color="#626A73", linewidth=0.9, linestyle="--")
+            for row_index, (strategy, repetition) in enumerate(rows):
                 item = lookup.get((model, benchmark, strategy, repetition))
-                if item is None or not _valid(item.get("accuracy_difference_pp")):
-                    label, color = "N/A", "#FFFFFF"
-                    missing = True
-                else:
-                    value = item["accuracy_difference_pp"]
-                    significant = item["significant"]
-                    outcome = (
-                        ("Increase" if value > 0 else "Decrease")
-                        if significant
-                        else "Not significant"
+                if item is None:
+                    axis.text(
+                        0.98,
+                        row_index,
+                        "N/A",
+                        ha="right",
+                        va="center",
+                        transform=axis.get_yaxis_transform(),
                     )
-                    color = colors[outcome]
-                    label = f"{value:+.2f}{'*' if significant else ''}"
-                axis.add_patch(
-                    Rectangle(
-                        (column_index - 0.47, row_index - 0.43),
-                        0.94,
-                        0.86,
-                        facecolor=color,
-                        edgecolor="#D7DCE2",
-                        linewidth=0.5,
-                        hatch="///" if label == "N/A" else None,
-                    )
+                    continue
+                value = item["accuracy_difference_pp"]
+                low, high = item["ci95_low_pp"], item["ci95_high_pp"]
+                color = _color(strategy, strategies.index(strategy), STRATEGY_COLORS)
+                # Draw endpoints directly: BCa intervals need not contain their estimate.
+                axis.hlines(row_index, low, high, color=color, linewidth=1.6)
+                axis.plot(
+                    [low, high], [row_index, row_index], "|", color=color, markersize=5
                 )
-                axis.text(
-                    column_index, row_index, label, ha="center", va="center", fontsize=9
-                )
-        axis.set_xlim(-0.55, len(repetitions) - 0.45)
-        axis.set_ylim(len(rows) - 0.45, -0.55)
-        axis.set_xticks(
-            range(len(repetitions)),
-            [f"Repetition {repetition}" for repetition in repetitions],
-        )
-        axis.set_yticks(
-            range(len(rows)),
-            [
-                f"{_benchmark_label(benchmark)} {STRATEGY_SHORT_LABELS.get(strategy, strategy)}"
-                for benchmark, strategy in rows
-            ],
-        )
-        axis.xaxis.tick_top()
-        axis.tick_params(length=0, pad=7)
-        axis.set_title(_model_label(model), fontweight="bold", pad=35)
-        for spine in axis.spines.values():
-            spine.set_visible(False)
-    handles = [Patch(facecolor=color, label=label) for label, color in colors.items()]
-    if missing:
-        handles.append(
-            Patch(
-                facecolor="white", edgecolor="#D7DCE2", hatch="///", label="Unavailable"
+                axis.plot(value, row_index, "o", color=color, markersize=4)
+            axis.set_yticks(
+                range(len(rows)),
+                [
+                    f"{STRATEGY_SHORT_LABELS.get(strategy, strategy)} R{repetition}"
+                    for strategy, repetition in rows
+                ],
             )
-        )
-    figure.legend(
-        handles=handles, loc="outside lower center", ncols=len(handles), frameon=False
-    )
+            axis.set_ylim(len(rows) - 0.45, -0.55)
+            axis.xaxis.set_major_locator(MaxNLocator(nbins=6))
+            axis.xaxis.grid(color="#E4E7EB", linewidth=0.6)
+            axis.set_axisbelow(True)
+            axis.set_xlabel("Accuracy difference from Direct (pp)")
+            axis.set_title(
+                f"{_model_label(model)} - {_benchmark_label(benchmark)}",
+                fontweight="bold",
+            )
+            axis.spines["top"].set_visible(False)
+            axis.spines["right"].set_visible(False)
+            axis.spines["left"].set_visible(False)
+            axis.tick_params(axis="y", length=0)
+            for boundary in range(len(repetitions), len(rows), len(repetitions)):
+                axis.axhline(boundary - 0.5, color="#EEF0F3", linewidth=0.7)
+            axis.margins(x=0.08)
     stem = "mcnemar_vs_direct"
     _save(figure, output_dir, stem)
     return FigureArtifact(
         stem=stem,
-        title="Paired accuracy differences and McNemar test results",
-        alt_text="Matrices of accuracy differences from Direct for each repetition, with significant increases and decreases highlighted after Holm correction.",
+        title="Paired accuracy differences with 95% confidence intervals",
+        alt_text="Accuracy differences from Direct for each model, benchmark, strategy and repetition, with horizontal 95% paired bootstrap confidence intervals and a zero reference line.",
         caption=(
-            "Paired differences from Direct (pp). * marks Holm-adjusted significance "
-            f"at {statistical_comparison.get('alpha', 0.05):g} across "
-            f"{statistical_comparison.get('family_size', len(tests))} comparisons."
+            "Points show accuracy differences from Direct; horizontal bars show individual 95% paired BCa confidence intervals. "
+            "R1-R3 are separate repetitions. Colors identify strategies. The dashed line marks no difference; "
+            "intervals are not adjusted across comparisons."
         ),
     )
 
